@@ -12,21 +12,24 @@ dotenv.config();
 
 const app = express();
 
+// ---------------- MIDDLEWARE ----------------
 app.use(
   cors({
-    origin: "*", // or "https://your-frontend.vercel.app"
+    origin: "*", // for Vercel or any frontend
     credentials: true,
   })
 );
 app.use(express.json());
 
+// ---------------- ROUTES ----------------
 app.use("/api/admin", adminRoutes);
 app.use("/api/employee", employeeRoutes);
 
 app.get("/", (req, res) => {
-  res.send("Dubai Visa Application API is running 🚀");
+  res.send("🚀 Dubai Visa Application API is running");
 });
 
+// ---------------- CREATE DEFAULT ADMIN ----------------
 const createAdminIfNotExists = async () => {
   try {
     const email = process.env.ADMIN_EMAIL;
@@ -52,7 +55,7 @@ const createAdminIfNotExists = async () => {
     const matches = await bcrypt.compare(plain, admin.password);
     console.log("[v0] Admin env password matches stored hash:", matches);
     if (!matches) {
-      admin.password = plain; // triggers pre-save hashing
+      admin.password = plain;
       await admin.save();
       console.log("[v0] Admin password reset from env");
     }
@@ -67,10 +70,16 @@ mongoose
   .then(async () => {
     console.log("✅ MongoDB Connected");
     await createAdminIfNotExists();
+
+    // ✅ Only listen locally (Vercel auto-handles this)
+    if (process.env.NODE_ENV !== "production") {
+      const PORT = process.env.PORT || 5000;
+      app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+    }
   })
   .catch((err) => {
     console.error("❌ Database connection failed:", err.message);
   });
 
-// ✅ Export the app instead of listening (Vercel handles this automatically)
+// ✅ Export app for Vercel
 export default app;
