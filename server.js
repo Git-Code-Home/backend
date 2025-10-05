@@ -27,7 +27,6 @@ app.get("/", (req, res) => {
   res.send("Dubai Visa Application API is running 🚀");
 });
 
-// ---------------- CREATE ADMIN IF NOT EXISTS ----------------
 const createAdminIfNotExists = async () => {
   try {
     const email = process.env.ADMIN_EMAIL;
