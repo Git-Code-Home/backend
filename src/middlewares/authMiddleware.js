@@ -46,3 +46,12 @@ export const employeeOnly = (req, res, next) => {
     res.status(403).json({ message: "Employee access required" });
   }
 };
+
+// ------------------ AGENT ONLY ------------------
+export const agentOnly = (req, res, next) => {
+  if (req.user && req.user.role === "agent") {
+    next();
+  } else {
+    res.status(403).json({ message: "Agent access required" });
+  }
+};

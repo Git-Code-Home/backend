@@ -7,7 +7,7 @@ import bcrypt from "bcryptjs";
 import adminRoutes from "./src/routes/adminRoutes.js";
 import employeeRoutes from "./src/routes/employeeRoutes.js";
 import User from "./src/models/User.js";
-
+import agentRoutes from  './src/routes/agentRoutes.js'
 dotenv.config();
 
 const app = express();
@@ -15,7 +15,10 @@ const app = express();
 // ---------------- MIDDLEWARE ----------------
 app.use(
   cors({
-    origin: "*", // for Vercel or any frontend
+     origin: [
+      "https://visa-management-frontend.vercel.app",
+      "http://localhost:5173",
+    ],
     credentials: true,
   })
 );
@@ -24,6 +27,8 @@ app.use(express.json());
 // ---------------- ROUTES ----------------
 app.use("/api/admin", adminRoutes);
 app.use("/api/employee", employeeRoutes);
+app.use("/api/agent", agentRoutes);
+
 
 app.get("/", (req, res) => {
   res.send("🚀 Dubai Visa Application API is running");
