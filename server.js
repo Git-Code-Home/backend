@@ -16,7 +16,7 @@ const app = express();
 app.use(
   cors({
      origin: [
-      "https://visa-management-frontend.vercel.app",
+      "https://visa-managment-nine.vercel.app",
       "http://localhost:5173",
     ],
     credentials: true,
