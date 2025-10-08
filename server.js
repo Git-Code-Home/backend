@@ -17,7 +17,7 @@ app.use(
   cors({
      origin: [
       "https://visa-managment-nine.vercel.app",
-      "http://localhost:5173",
+      "http://localhost:8080",
     ],
     credentials: true,
   })
