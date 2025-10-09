@@ -5,10 +5,7 @@ import User from "../models/User.js";
 export const protect = async (req, res, next) => {
   let token;
 
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
+  if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
     try {
       token = req.headers.authorization.split(" ")[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -18,40 +15,39 @@ export const protect = async (req, res, next) => {
         return res.status(401).json({ message: "User not found" });
       }
 
-      req.user = user; // ✅ set user for all downstream middlewares
+      if (user.isBlocked) {
+        return res.status(403).json({ message: "Account is blocked" });
+      }
+
+      req.user = user; // ✅ set user for downstream middlewares
       next();
     } catch (error) {
       console.error(error);
       return res.status(401).json({ message: "Not authorized, token failed" });
     }
   } else {
-    return res.status(401).json({ message: "Not authorized, no token" });
+    return res.status(401).json({ message: "No token provided" });
   }
 };
 
-// ------------------ ADMIN ONLY ------------------
+// ------------------ ROLE MIDDLEWARES ------------------
 export const adminOnly = (req, res, next) => {
-  if (req.user && req.user.role === "admin") {
-    next();
-  } else {
-    res.status(403).json({ message: "Admin access required" });
-  }
+  if (req.user.role === "admin") next();
+  else res.status(403).json({ message: "Admin access required" });
 };
 
-// ------------------ EMPLOYEE ONLY ------------------
 export const employeeOnly = (req, res, next) => {
-  if (req.user && req.user.role === "employee") {
-    next();
-  } else {
-    res.status(403).json({ message: "Employee access required" });
-  }
+  if (req.user.role === "employee") next();
+  else res.status(403).json({ message: "Employee access required" });
 };
 
-// ------------------ AGENT ONLY ------------------
 export const agentOnly = (req, res, next) => {
-  if (req.user && req.user.role === "agent") {
-    next();
-  } else {
-    res.status(403).json({ message: "Agent access required" });
-  }
+  if (req.user.role === "agent") next();
+  else res.status(403).json({ message: "Agent access required" });
+};
+
+// ------------------ ADMIN OR EMPLOYEE ------------------
+export const adminOrEmployeeOnly = (req, res, next) => {
+  if (req.user.role === "admin" || req.user.role === "employee") next();
+  else res.status(403).json({ message: "Access denied" });
 };

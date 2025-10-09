@@ -7,10 +7,14 @@ const applicationSchema = new mongoose.Schema(
       ref: "Client",
       required: true, // ensures every application is linked to a client
     },
+
     processedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true, // employee/admin who created it
+      required: function () {
+        // ✅ Only required if the user creating this document is NOT an agent
+        return this.agent == null;
+      },
     },
 
     // 🔹 NEW: Agent assigned to this application
@@ -42,7 +46,7 @@ const applicationSchema = new mongoose.Schema(
       passport: { type: String },
       photo: { type: String },
       idCard: { type: String },
-      // you can add more document types if needed
+      // add more document types if needed
     },
 
     invoice: {
@@ -51,11 +55,11 @@ const applicationSchema = new mongoose.Schema(
       dueDate: { type: Date },
     },
 
-    // 🔹 NEW: Visa issue & expiry tracking
+    // 🔹 Visa issue & expiry tracking
     issueDate: { type: Date },
     expiryDate: { type: Date },
 
-    // 🔹 NEW: Commission system for agents
+    // 🔹 Commission system for agents
     commissionAmount: { type: Number, default: 0 },
     commissionStatus: {
       type: String,
@@ -74,6 +78,13 @@ const applicationSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// ✅ Prevent "processedBy" required error when created by agent
+applicationSchema.pre("validate", function (next) {
+  // if agent is present, skip processedBy requirement
+  if (this.agent) this.processedBy = this.processedBy || undefined;
+  next();
+});
 
 const Application = mongoose.model("Application", applicationSchema);
 

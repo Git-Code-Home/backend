@@ -68,13 +68,20 @@ export const getAssignedClients = async (req, res) => {
 // ✅ Create or Edit Visa Application
 export const createOrUpdateApplication = async (req, res) => {
   try {
-    const { clientId, visaType, documents, status, issueDate, expiryDate, commissionAmount } = req.body;
+    const { clientId, visaType, status, issueDate, expiryDate, commissionAmount } = req.body
 
-    let application = await Application.findOne({ client: clientId, agent: req.user._id });
+    // ✅ Uploaded files come from Cloudinary now
+    const documents = {
+      passport: req.files?.passport ? req.files.passport[0].path : undefined,
+      photo: req.files?.photo ? req.files.photo[0].path : undefined,
+      idCard: req.files?.idCard ? req.files.idCard[0].path : undefined,
+    }
+
+    let application = await Application.findOne({ client: clientId, agent: req.user._id })
 
     if (application) {
-      Object.assign(application, { visaType, documents, status, issueDate, expiryDate, commissionAmount });
-      await application.save();
+      Object.assign(application, { visaType, documents, status, issueDate, expiryDate, commissionAmount })
+      await application.save()
     } else {
       application = await Application.create({
         client: clientId,
@@ -85,14 +92,20 @@ export const createOrUpdateApplication = async (req, res) => {
         issueDate,
         expiryDate,
         commissionAmount,
-      });
+      })
     }
 
-    res.json(application);
+    res.json({
+      message: "Application uploaded successfully",
+      application,
+    })
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Error in createOrUpdateApplication:", error)
+    res.status(500).json({ message: error.message })
   }
-};
+}
+
+
 
 // ✅ Commission Summary
 export const getCommissionSummary = async (req, res) => {

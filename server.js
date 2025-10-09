@@ -3,14 +3,18 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cors from "cors";
 import bcrypt from "bcryptjs";
+import path from "path"
 
 import adminRoutes from "./src/routes/adminRoutes.js";
 import employeeRoutes from "./src/routes/employeeRoutes.js";
 import User from "./src/models/User.js";
 import agentRoutes from  './src/routes/agentRoutes.js'
+import controllRoutes from './src/routes/controllRoutes.js'
 dotenv.config();
 
 const app = express();
+const __dirname = path.resolve()
+app.use("/uploads", express.static(path.join(__dirname, "/uploads")))
 
 // ---------------- MIDDLEWARE ----------------
 app.use(
@@ -28,6 +32,7 @@ app.use(express.json());
 app.use("/api/admin", adminRoutes);
 app.use("/api/employee", employeeRoutes);
 app.use("/api/agent", agentRoutes);
+app.use('/api/public/agents' , controllRoutes)
 
 
 app.get("/", (req, res) => {
