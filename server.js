@@ -446,6 +446,8 @@ console.log("🧠 MONGO_URI loaded:", process.env.MONGO_URI ? "✅ Yes" : "❌ N
 const app = express();
 app.use("/uploads", express.static(path.join(__dirname, "/uploads")));
 
+const PORT = process.env.PORT || 5000;
+
 // ✅ Request Logger (optional)
 app.use((req, res, next) => {
   console.log(`[server] ${req.method} ${req.originalUrl} - origin: ${req.headers.origin || "-"}`);
@@ -525,5 +527,10 @@ mongoose.connect(process.env.MONGO_URI)
     console.error("❌ Database connection failed:", err.message);
   });
 
-// ✅ Don’t use app.listen() (Vercel handles that automatically)
+// ✅ Start server locally
+if (process.env.NODE_ENV !== "production") {
+  app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
+}
+
 export default app;
+
