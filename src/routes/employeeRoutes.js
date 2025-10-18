@@ -51,6 +51,49 @@
 // export default router;
 
 
+// import express from "express";
+// import { loginEmployee } from "../controllers/employeeController.js";
+// import upload from '../middlewares/upload.js';
+// import {
+//   registerClient,
+//   createApplication,
+//   uploadDocuments,
+//   getMyClients,
+//   getMyApplications
+// } from "../controllers/EmployeeDashboard.js";
+// import { protect, employeeOnly } from "../middlewares/authMiddleware.js";
+
+// const router = express.Router();
+
+// // employee login
+// router.post("/login-employee", loginEmployee);
+
+// // client registration
+// router.post("/clients", protect, employeeOnly, registerClient);
+
+// // create new application
+// router.post("/applications", protect, employeeOnly, createApplication);
+
+// // upload docs
+// router.post('/applications/:id/upload', 
+//   upload.fields([
+//     { name: 'passport', maxCount: 1 },
+//     { name: 'photo', maxCount: 1 },
+//     { name: 'idCard', maxCount: 1 }
+//   ]), 
+//   uploadDocuments
+// );
+
+// // list my clients
+// router.get("/my-clients", protect, employeeOnly, getMyClients);
+
+// // list my applications
+// router.get("/my-applications", protect, employeeOnly, getMyApplications);
+
+// export default router;
+
+
+
 import express from "express";
 import { loginEmployee } from "../controllers/employeeController.js";
 import upload from '../middlewares/upload.js';
@@ -62,7 +105,7 @@ import {
   getMyApplications
 } from "../controllers/EmployeeDashboard.js";
 import { protect, employeeOnly } from "../middlewares/authMiddleware.js";
-
+// import { authenticateEmployee } from '../middlewares/authMiddleware.js'
 const router = express.Router();
 
 // employee login
@@ -74,10 +117,15 @@ router.post("/clients", protect, employeeOnly, registerClient);
 // create new application
 router.post("/applications", protect, employeeOnly, createApplication);
 
-// upload docs
+// upload docs (updated to accept all required fields)
 router.post('/applications/:id/upload', 
   upload.fields([
     { name: 'passport', maxCount: 1 },
+    { name: 'passportFirstPage', maxCount: 1 },
+    { name: 'passportCoverPage', maxCount: 1 },
+    { name: 'birthCertificate', maxCount: 1 },
+    { name: 'bayForm', maxCount: 1 },
+    { name: 'paymentReceipt', maxCount: 1 },
     { name: 'photo', maxCount: 1 },
     { name: 'idCard', maxCount: 1 }
   ]), 
@@ -89,5 +137,10 @@ router.get("/my-clients", protect, employeeOnly, getMyClients);
 
 // list my applications
 router.get("/my-applications", protect, employeeOnly, getMyApplications);
-
+router.post('/assign-client', async (req, res) => { 
+  const { agentId, clientId } = req.body;
+  // Your logic to assign client to agent
+  // Update your database accordingly
+  res.json({ message: 'Client assigned successfully' });
+});
 export default router;
