@@ -28,17 +28,17 @@
 
 
 // src/models/Commission.js
-import mongoose from "mongoose";
+// import mongoose from "mongoose";
 
-const commissionSchema = new mongoose.Schema({
-  agent: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  client: { type: mongoose.Schema.Types.ObjectId, ref: "Client", required: true },
-  amount: { type: Number, required: true },
-  status: { type: String, enum: ["pending", "paid"], default: "pending" },
-  paymentProof: { type: String }, // URL or file path to screenshot
-  createdAt: { type: Date, default: Date.now },
-});
+// const commissionSchema = new mongoose.Schema({
+//   agent: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+//   client: { type: mongoose.Schema.Types.ObjectId, ref: "Client", required: true },
+//   amount: { type: Number, required: true },
+//   status: { type: String, enum: ["pending", "paid"], default: "pending" },
+//   paymentProof: { type: String }, // URL or file path to screenshot
+//   createdAt: { type: Date, default: Date.now },
+// });
 
-const Commission = mongoose.model("Commission", commissionSchema);
+// const Commission = mongoose.model("Commission", commissionSchema);
 
-export default Commission; // ✅ this line is critical
+// export default Commission; // ✅ this line is critical
