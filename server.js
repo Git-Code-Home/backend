@@ -338,7 +338,7 @@ app.use(cors({
   origin: [
     "http://localhost:8080",
     "http://localhost:5173",
-    "https://visa-managment-nine.vercel.app",
+    "https://sherrytravels-webapp.vercel.app",
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   allowedHeaders: ["Content-Type", "Authorization"],
