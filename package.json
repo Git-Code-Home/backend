@@ -2,9 +2,10 @@
   "name": "visa-backend",
   "version": "1.0.0",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon server.js",
+    "start": "node server.js",
     "seed:admin": "node src/config/adminSeeder.js"
   },
   "dependencies": {
