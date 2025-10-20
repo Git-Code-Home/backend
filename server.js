@@ -46,6 +46,19 @@ app.use(cors({
 
 app.use(express.json());
 
+// Ensure DB is connected before handling requests (helps on serverless cold starts)
+app.use(async (req, res, next) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      await connectDB();
+    }
+    next();
+  } catch (err) {
+    console.error("❌ DB connect on-request failed:", err.message);
+    return res.status(500).json({ message: "Database connection failed" });
+  }
+});
+
 // ---------------- ROUTES ----------------
 app.use(adminDebugData);
 app.use("/api/admin", adminRoutes);
@@ -58,6 +71,26 @@ app.use("/api/agent/commissions", agentCommissionRoutes);
 
 app.get("/", (req, res) => {
   res.send("🚀 Dubai Visa Application API is running");
+});
+
+// Simple DB health endpoint (useful for platform checks)
+app.get("/api/health/db", async (req, res) => {
+  try {
+    const state = mongoose.connection.readyState; // 0=disconnected,1=connected,2=connecting,3=disconnecting
+    res.json({ ok: state === 1, state });
+  } catch (e) {
+    res.status(500).json({ ok: false, message: e.message });
+  }
+});
+
+// Simple DB health endpoint (useful for platform checks)
+app.get("/api/health/db", async (req, res) => {
+  try {
+    const state = mongoose.connection.readyState; // 1 = connected
+    res.json({ ok: state === 1, state });
+  } catch (e) {
+    res.status(500).json({ ok: false, message: e.message });
+  }
 });
 
 // ---------------- CREATE DEFAULT ADMIN ----------------
