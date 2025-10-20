@@ -1236,6 +1236,11 @@ export const uploadDocuments = async (req, res) => {
     uploadedDocs.forEach((doc) => {
       updateData[`documents.${doc.field}`] = doc.url;
     });
+    // If payment receipt was uploaded, mark invoice as paid and update status
+    if (updateData['documents.paymentReceipt']) {
+      updateData['invoice.paid'] = true;
+      updateData['applicationStatus'] = 'processing'; // or 'paid' if you want a separate status
+    }
 
     const application = await Application.findByIdAndUpdate(
       applicationId,
