@@ -124,7 +124,7 @@ router.post('/applications/:id/upload',
     { name: 'passportFirstPage', maxCount: 1 },
     { name: 'passportCoverPage', maxCount: 1 },
     { name: 'birthCertificate', maxCount: 1 },
-    { name: 'bayForm', maxCount: 1 },
+    { name: 'bForm', maxCount: 1 },
     { name: 'paymentReceipt', maxCount: 1 },
     { name: 'photo', maxCount: 1 },
     { name: 'idCard', maxCount: 1 }

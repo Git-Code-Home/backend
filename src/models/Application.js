@@ -46,7 +46,16 @@ const applicationSchema = new mongoose.Schema(
       passport: { type: String },
       photo: { type: String },
       idCard: { type: String },
+      birthCertificate: { type: String },
+      bForm: { type: String },
+      passportFirstPage: { type: String },
+      passportCoverPage: { type: String },
+      paymentReceipt: { type: String },
       // add more document types if needed
+    },
+
+    visaDuration: {
+      type: String, // e.g., "30 days", "90 days", etc.
     },
 
     invoice: {

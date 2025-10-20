@@ -1189,11 +1189,12 @@ export const registerClient = async (req, res) => {
 // @access  Private (Employee)
 export const createApplication = async (req, res) => {
   try {
-    const { clientId, visaType } = req.body;
+    const { clientId, visaType, visaDuration } = req.body;
 
     const application = await Application.create({
       client: clientId,
       visaType,
+      visaDuration,
       processedBy: req.user._id,
       status: "processing",
       paymentStatus: "unpaid",
