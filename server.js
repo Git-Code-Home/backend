@@ -33,16 +33,30 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(cors({
-  origin: [
-    "http://localhost:8080",
-    "http://localhost:5173",
-    "https://sherrytravels-webapp.vercel.app",
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+// Improved CORS: allow localhost and Vercel preview/prod domains
+const allowlist = new Set([
+  "http://localhost:8080",
+  "http://localhost:5173",
+  "https://sherrytravels-webapp.vercel.app",
+]);
+
+const corsOptions = {
+  origin: (origin, cb) => {
+    // Allow non-browser clients (no origin) and known allowlist
+    if (!origin) return cb(null, true);
+    // Allow any vercel.app preview domain for this project
+    const isVercel = /\.vercel\.app$/i.test(origin);
+    if (allowlist.has(origin) || isVercel) return cb(null, true);
+    return cb(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
-}));
+  optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 app.use(express.json());
 
@@ -74,19 +88,10 @@ app.get("/", (req, res) => {
 });
 
 // Simple DB health endpoint (useful for platform checks)
-app.get("/api/health/db", async (req, res) => {
-  try {
-    const state = mongoose.connection.readyState; // 0=disconnected,1=connected,2=connecting,3=disconnecting
-    res.json({ ok: state === 1, state });
-  } catch (e) {
-    res.status(500).json({ ok: false, message: e.message });
-  }
-});
-
 // Simple DB health endpoint (useful for platform checks)
 app.get("/api/health/db", async (req, res) => {
   try {
-    const state = mongoose.connection.readyState; // 1 = connected
+    const state = mongoose.connection.readyState; // 0..3
     res.json({ ok: state === 1, state });
   } catch (e) {
     res.status(500).json({ ok: false, message: e.message });
