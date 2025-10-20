@@ -50,7 +50,7 @@ const corsOptions = {
     return cb(new Error(`CORS blocked for origin: ${origin}`));
   },
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "Accept", "X-Requested-With"],
   credentials: true,
   optionsSuccessStatus: 204,
 };
@@ -87,7 +87,6 @@ app.get("/", (req, res) => {
   res.send("🚀 Dubai Visa Application API is running");
 });
 
-// Simple DB health endpoint (useful for platform checks)
 // Simple DB health endpoint (useful for platform checks)
 app.get("/api/health/db", async (req, res) => {
   try {
