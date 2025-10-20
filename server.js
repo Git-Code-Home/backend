@@ -61,12 +61,25 @@ app.options("*", cors(corsOptions));
 app.use(express.json());
 
 // Ensure DB is connected before handling requests (helps on serverless cold starts)
+async function ensureConnected() {
+  const state = mongoose.connection.readyState; // 0=disconnected,1=connected,2=connecting,3=disconnecting
+  if (state === 1) return;
+  if (state === 2) {
+    // Wait for the current connection attempt to finish
+    await mongoose.connection.asPromise().catch(() => {});
+    return;
+  }
+  // 0 or 3 => connect/reconnect
+  await connectDB();
+  if (mongoose.connection.readyState !== 1) {
+    await mongoose.connection.asPromise().catch(() => {});
+  }
+}
+
 app.use(async (req, res, next) => {
   try {
-    if (mongoose.connection.readyState !== 1) {
-      await connectDB();
-    }
-    next();
+    await ensureConnected();
+    return next();
   } catch (err) {
     console.error("❌ DB connect on-request failed:", err.message);
     return res.status(500).json({ message: "Database connection failed" });
