@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const paymentReceiptSchema = new mongoose.Schema({
   uploadedBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User", // could be Employee, Agent, or Applicant
+    ref: "User",
     required: true,
   },
   role: {
@@ -17,7 +17,6 @@ const paymentReceiptSchema = new mongoose.Schema({
   },
   amount: {
     type: Number,
-    required: true,
   },
   description: {
     type: String,
@@ -32,4 +31,5 @@ const paymentReceiptSchema = new mongoose.Schema({
   },
 });
 
-export default mongoose.model("PaymentReceipt", paymentReceiptSchema);
+const PaymentReceipt = mongoose.model("PaymentReceipt", paymentReceiptSchema);
+export default PaymentReceipt;

@@ -1,6 +1,9 @@
+
+import dotenv from "dotenv";
+dotenv.config();
+
 import express from "express";
 import mongoose from "mongoose";
-import dotenv from "dotenv";
 import cors from "cors";
 import bcrypt from "bcryptjs";
 import path from "path";
@@ -15,7 +18,7 @@ import paymentRoutes from "./src/routes/paymentRoutes.js";
 import adminDebugData from "./src/routes/adminDebugData.js";
 import adminCommissionRoutes from "./src/routes/adminCommissionRoutes.js";
 import agentCommissionRoutes from "./src/routes/agentCommissionRoutes.js";
-import { connectDB } from "./src/config/db.js"; // ✅ Import connection helper
+import { connectDB } from "./src/config/db.js"; //  Import connection helper
 
 // ---------------- SETUP ----------------
 const __filename = fileURLToPath(import.meta.url);
@@ -146,29 +149,21 @@ const createAdminIfNotExists = async () => {
 };
 
 // ---------------- CONNECT TO DATABASE ----------------
-// In serverless / production environments (like Vercel) avoid performing
-// long-running startup tasks (like connecting to the DB or seeding) at
-// module import time because that can cause build/deploy failures when
-// environment variables are not available or the platform expects a
-// request-based handler. The middleware `ensureConnected()` will connect
-// on-demand per request which is suitable for serverless platforms.
-if (process.env.NODE_ENV !== "production") {
-  ;(async () => {
-    try {
-      await connectDB();
-      await createAdminIfNotExists();
-      console.log("✅ Server ready");
+(async () => {
+  try {
+    await connectDB();
+    await createAdminIfNotExists();
+    console.log("✅ Server ready");
 
+    if (process.env.NODE_ENV !== "production") {
       const PORT = process.env.PORT || 5000;
       app.listen(PORT, () => {
         console.log(`🚀 Server running locally at http://localhost:${PORT}`);
       });
-    } catch (err) {
-      console.error("❌ Failed to start server:", err.message);
     }
-  })();
-} else {
-  console.log("[server] Production mode detected - skipping startup DB connect and seeder. DB will connect per-request.");
-}
+  } catch (err) {
+    console.error("❌ Failed to start server:", err.message);
+  }
+})();
 
 export default app;

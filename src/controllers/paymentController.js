@@ -3,9 +3,8 @@ import Application from "../models/Application.js";
 
 export const uploadReceipt = async (req, res) => {
   try {
-    const { amount, description, uploadedBy, role, applicationId } = req.body;
-    const fileUrl = `/uploads/receipts/${req.file.filename}`;
-
+    const { amount, description, uploadedBy, role, applicationId, fileUrl } = req.body;
+    // fileUrl is now the Cloudinary URL, passed from paymentRoutes.js
     const receipt = new PaymentReceipt({
       uploadedBy,
       role,
@@ -13,39 +12,21 @@ export const uploadReceipt = async (req, res) => {
       description,
       fileUrl,
     });
-
     await receipt.save();
 
     // If applicationId is provided, update the application
     if (applicationId) {
       const application = await Application.findById(applicationId);
-      
       if (application) {
-        // Update the payment receipt document reference
         application.documents.paymentReceipt = fileUrl;
-        
-        // Mark invoice as paid
-        if (!application.invoice) {
-          application.invoice = {};
-        }
+        if (!application.invoice) application.invoice = {};
         application.invoice.paid = true;
-        
-        // Update application status if still pending
-        if (application.applicationStatus === 'pending') {
-          application.applicationStatus = 'processing';
-        }
-        
+        application.applicationStatus = 'under_review';
         await application.save();
-        
-        console.log(`[uploadReceipt] Updated application ${applicationId} with payment receipt`);
-      } else {
-        console.warn(`[uploadReceipt] Application ${applicationId} not found`);
       }
     }
-
     res.status(201).json({ message: "Receipt uploaded successfully", receipt });
   } catch (error) {
-    console.error("[uploadReceipt] Error:", error);
     res.status(500).json({ message: "Error uploading receipt", error: error.message });
   }
 };
@@ -63,12 +44,17 @@ export const verifyReceipt = async (req, res) => {
   try {
     const receipt = await PaymentReceipt.findById(req.params.id);
     if (!receipt) return res.status(404).json({ message: "Receipt not found" });
-
     receipt.verified = true;
     await receipt.save();
 
-    res.status(200).json({ message: "Receipt verified successfully" });
+    // Update application status to 'approved' if linked
+    const application = await Application.findOne({ "documents.paymentReceipt": receipt.fileUrl });
+    if (application) {
+      application.applicationStatus = "approved";
+      await application.save();
+    }
+    res.status(200).json({ message: "Receipt verified and application approved" });
   } catch (error) {
-    res.status(500).json({ message: "Error verifying receipt", error });
+    res.status(500).json({ message: "Error verifying receipt", error: error.message });
   }
 };
