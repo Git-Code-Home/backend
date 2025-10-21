@@ -146,21 +146,29 @@ const createAdminIfNotExists = async () => {
 };
 
 // ---------------- CONNECT TO DATABASE ----------------
-(async () => {
-  try {
-    await connectDB();
-    await createAdminIfNotExists();
-    console.log("✅ Server ready");
+// In serverless / production environments (like Vercel) avoid performing
+// long-running startup tasks (like connecting to the DB or seeding) at
+// module import time because that can cause build/deploy failures when
+// environment variables are not available or the platform expects a
+// request-based handler. The middleware `ensureConnected()` will connect
+// on-demand per request which is suitable for serverless platforms.
+if (process.env.NODE_ENV !== "production") {
+  ;(async () => {
+    try {
+      await connectDB();
+      await createAdminIfNotExists();
+      console.log("✅ Server ready");
 
-    if (process.env.NODE_ENV !== "production") {
       const PORT = process.env.PORT || 5000;
       app.listen(PORT, () => {
         console.log(`🚀 Server running locally at http://localhost:${PORT}`);
       });
+    } catch (err) {
+      console.error("❌ Failed to start server:", err.message);
     }
-  } catch (err) {
-    console.error("❌ Failed to start server:", err.message);
-  }
-})();
+  })();
+} else {
+  console.log("[server] Production mode detected - skipping startup DB connect and seeder. DB will connect per-request.");
+}
 
 export default app;

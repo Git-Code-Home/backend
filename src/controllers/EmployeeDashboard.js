@@ -1236,25 +1236,36 @@ export const uploadDocuments = async (req, res) => {
     uploadedDocs.forEach((doc) => {
       updateData[`documents.${doc.field}`] = doc.url;
     });
+    
     // If payment receipt was uploaded, mark invoice as paid and update status
     if (updateData['documents.paymentReceipt']) {
+      console.log('[uploadDocuments] Payment receipt detected, marking invoice as paid');
       updateData['invoice.paid'] = true;
       updateData['applicationStatus'] = 'processing'; // or 'paid' if you want a separate status
     }
+
+    console.log('[uploadDocuments] Update data:', updateData);
 
     const application = await Application.findByIdAndUpdate(
       applicationId,
       { $set: updateData },
       { new: true }
-    );
+    ).populate('client');
 
     if (!application) {
       return res.status(404).json({ message: "Application not found" });
     }
 
+    console.log('[uploadDocuments] Application updated successfully:', {
+      id: application._id,
+      hasPaymentReceipt: !!application.documents?.paymentReceipt,
+      invoicePaid: application.invoice?.paid
+    });
+
     res.status(200).json({
       message: "Documents uploaded successfully",
       documents: application.documents,
+      invoice: application.invoice,
     });
   } catch (error) {
     console.error("Upload error:", error);
