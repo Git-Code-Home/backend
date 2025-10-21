@@ -99,8 +99,8 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/admin/commissions", adminCommissionRoutes);
 app.use("/api/agent/commissions", agentCommissionRoutes);
 
-app.get("/", (req, res) => {
-  res.send("🚀 Dubai Visa Application API is running");
+app.get("/*", (req, res) => {
+  res.send("\ud83d\ude80 Dubai Visa Application API is running");
 });
 
 // Simple DB health endpoint (useful for platform checks)
