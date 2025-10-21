@@ -1,81 +1,83 @@
-// import express from "express";
-// import multer from "multer";
-// import { uploadReceipt, getReceipts, verifyReceipt } from "../controllers/paymentController.js";
-
-// const router = express.Router();
-
-// // multer setup for uploads (store locally or to Cloudinary)
-// const storage = multer.diskStorage({
-//   destination: (req, file, cb) => {
-//     cb(null, "uploads/receipts");
-//   },
-//   filename: (req, file, cb) => {
-//     cb(null, Date.now() + "-" + file.originalname);
-//   },
-// });
-// const upload = multer({ storage });
-
-// // upload receipt
-// router.post("/upload", upload.single("receipt"), uploadReceipt);
-
-// // get all receipts (admin view)
-// router.get("/", getReceipts);
-
-// // verify (admin action)
-// router.patch("/verify/:id", verifyReceipt);
-
-// export default router;
-
-
-
 
 import express from "express";
 import multer from "multer";
-import path from "path";
-import fs from "fs";
+import { v2 as cloudinary } from "cloudinary";
+import streamifier from "streamifier";
 import { uploadReceipt, getReceipts, verifyReceipt } from "../controllers/paymentController.js";
 
-const router = express.Router();
-
-// Ensure uploads/receipts directory exists
-const uploadsDir = "uploads/receipts";
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-  console.log("✅ Created uploads/receipts directory");
-}
-
-// multer setup for uploads (store locally or to Cloudinary)
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, `receipt-${uniqueSuffix}${ext}`);
-  },
+// Cloudinary config (credentials are in .env)
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
-const upload = multer({ 
+
+// Multer: memory storage for serverless
+const storage = multer.memoryStorage();
+const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
   fileFilter: (req, file, cb) => {
-    // Accept images and PDFs
-    const allowedMimes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+    const allowedMimes = [
+      "image/jpeg",
+      "image/png",
+      "image/jpg",
+      "application/pdf",
+    ];
     if (allowedMimes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only JPEG, PNG and PDF files are allowed.'));
+      cb(new Error("Invalid file type. Only JPEG, PNG, and PDF are allowed."));
     }
-  }
+  },
 });
 
-// upload receipt
-router.post("/upload-receipt", upload.single("receipt"), uploadReceipt);
+// Helper: upload buffer to Cloudinary
+function uploadToCloudinary(fileBuffer, mimetype) {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: "payment_receipts",
+        resource_type: mimetype === "application/pdf" ? "raw" : "image",
+      },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result.secure_url);
+      }
+    );
+    streamifier.createReadStream(fileBuffer).pipe(uploadStream);
+  });
+}
 
-// get all receipts (admin view)
+// Controller: upload receipt to Cloudinary, then call your main logic
+async function uploadReceiptCloudinary(req, res) {
+  try {
+    const { amount, description, uploadedBy, role, applicationId } = req.body;
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    // Upload to Cloudinary
+    const fileUrl = await uploadToCloudinary(req.file.buffer, req.file.mimetype);
+
+    // Pass Cloudinary URL to your main controller
+    req.body.fileUrl = fileUrl;
+    await uploadReceipt(req, res);
+  } catch (error) {
+    console.error("[uploadReceiptCloudinary] Error:", error);
+    res.status(500).json({ message: "Error uploading receipt", error: error.message });
+  }
+}
+
+const router = express.Router();
+
+// Upload receipt (to Cloudinary)
+router.post("/upload-receipt", upload.single("receipt"), uploadReceiptCloudinary);
+
+// Get all receipts (admin view)
 router.get("/", getReceipts);
 
-// verify (admin action)
+// Verify (admin action)
 router.patch("/verify/:id", verifyReceipt);
 
 export default router;
