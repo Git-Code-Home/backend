@@ -1,8 +1,9 @@
 import PaymentReceipt from "../models/PaymentReceipt.js";
+import Application from "../models/Application.js";
 
 export const uploadReceipt = async (req, res) => {
   try {
-    const { amount, description, uploadedBy, role } = req.body;
+    const { amount, description, uploadedBy, role, applicationId } = req.body;
     const fileUrl = `/uploads/receipts/${req.file.filename}`;
 
     const receipt = new PaymentReceipt({
@@ -14,9 +15,38 @@ export const uploadReceipt = async (req, res) => {
     });
 
     await receipt.save();
+
+    // If applicationId is provided, update the application
+    if (applicationId) {
+      const application = await Application.findById(applicationId);
+      
+      if (application) {
+        // Update the payment receipt document reference
+        application.documents.paymentReceipt = fileUrl;
+        
+        // Mark invoice as paid
+        if (!application.invoice) {
+          application.invoice = {};
+        }
+        application.invoice.paid = true;
+        
+        // Update application status if still pending
+        if (application.applicationStatus === 'pending') {
+          application.applicationStatus = 'processing';
+        }
+        
+        await application.save();
+        
+        console.log(`[uploadReceipt] Updated application ${applicationId} with payment receipt`);
+      } else {
+        console.warn(`[uploadReceipt] Application ${applicationId} not found`);
+      }
+    }
+
     res.status(201).json({ message: "Receipt uploaded successfully", receipt });
   } catch (error) {
-    res.status(500).json({ message: "Error uploading receipt", error });
+    console.error("[uploadReceipt] Error:", error);
+    res.status(500).json({ message: "Error uploading receipt", error: error.message });
   }
 };
 
