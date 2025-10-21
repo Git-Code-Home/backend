@@ -5,13 +5,6 @@ import { v2 as cloudinary } from "cloudinary";
 import streamifier from "streamifier";
 import { uploadReceipt, getReceipts, verifyReceipt } from "../controllers/paymentController.js";
 
-// Cloudinary config (credentials are in .env)
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
 // Multer: memory storage for serverless
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -34,6 +27,12 @@ const upload = multer({
 
 // Helper: upload buffer to Cloudinary
 function uploadToCloudinary(fileBuffer, mimetype) {
+  // Cloudinary config must be set at invocation time for Vercel
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
