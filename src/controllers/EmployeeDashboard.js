@@ -1143,6 +1143,7 @@
 
 import Client from "../models/Client.js";
 import Application from "../models/Application.js";
+import User from "../models/User.js";
 import cloudinary from "../config/cloudinary.js";
 import multer from "multer";
 
@@ -1236,36 +1237,25 @@ export const uploadDocuments = async (req, res) => {
     uploadedDocs.forEach((doc) => {
       updateData[`documents.${doc.field}`] = doc.url;
     });
-    
     // If payment receipt was uploaded, mark invoice as paid and update status
     if (updateData['documents.paymentReceipt']) {
-      console.log('[uploadDocuments] Payment receipt detected, marking invoice as paid');
       updateData['invoice.paid'] = true;
       updateData['applicationStatus'] = 'processing'; // or 'paid' if you want a separate status
     }
-
-    console.log('[uploadDocuments] Update data:', updateData);
 
     const application = await Application.findByIdAndUpdate(
       applicationId,
       { $set: updateData },
       { new: true }
-    ).populate('client');
+    );
 
     if (!application) {
       return res.status(404).json({ message: "Application not found" });
     }
 
-    console.log('[uploadDocuments] Application updated successfully:', {
-      id: application._id,
-      hasPaymentReceipt: !!application.documents?.paymentReceipt,
-      invoicePaid: application.invoice?.paid
-    });
-
     res.status(200).json({
       message: "Documents uploaded successfully",
       documents: application.documents,
-      invoice: application.invoice,
     });
   } catch (error) {
     console.error("Upload error:", error);
@@ -1479,6 +1469,65 @@ export const getClientActivity = async (req, res) => {
     res.status(200).json(activity);
   } catch (error) {
     console.error("Error fetching client activity:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ------------------ REASSIGN CLIENT (ADMIN) ------------------
+// @route   PUT /api/admin/clients/:clientId/reassign
+// @access  Private (Admin)
+// Body: { employeeId?: string, agentId?: string }
+export const reassignClient = async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    let { employeeId, agentId } = req.body || {};
+
+    // Normalize empty strings/nulls
+    if (employeeId === "" || employeeId === null) employeeId = undefined;
+    if (agentId === "" || agentId === null) agentId = undefined;
+
+    if (!employeeId && !agentId) {
+      return res.status(400).json({ message: "Provide employeeId or agentId to reassign" });
+    }
+
+    const client = await Client.findById(clientId);
+    if (!client) {
+      return res.status(404).json({ message: "Client not found" });
+    }
+
+    // If assigning to an employee, validate and update client.assignedTo
+    if (employeeId) {
+      const employee = await User.findOne({ _id: employeeId, role: "employee" });
+      if (!employee) {
+        return res.status(400).json({ message: "Invalid employeeId" });
+      }
+      client.assignedTo = employee._id;
+    }
+
+    // If assigning to an agent, validate and update related applications
+    if (agentId) {
+      const agent = await User.findOne({ _id: agentId, role: "agent" });
+      if (!agent) {
+        return res.status(400).json({ message: "Invalid agentId" });
+      }
+
+      // Assign all applications for this client to the agent
+      await Application.updateMany(
+        { client: client._id },
+        { $set: { agent: agent._id, processedBy: null } }
+      );
+    }
+
+    await client.save();
+
+    // Return the updated client with minimal info
+    const updated = await Client.findById(client._id)
+      .populate("assignedTo", "name email role")
+      .lean();
+
+    return res.json({ message: "Client reassigned successfully", client: updated });
+  } catch (error) {
+    console.error("[reassignClient] error:", error);
     res.status(500).json({ message: error.message });
   }
 };

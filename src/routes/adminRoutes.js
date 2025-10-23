@@ -192,7 +192,8 @@ import {
   getClientDetails, 
   getClientApplications, 
   updateApplicationStatus,
-  getAllApplications
+  getAllApplications,
+  reassignClient
 } from "../controllers/EmployeeDashboard.js";
 
 const router = express.Router();
@@ -213,10 +214,16 @@ router.get("/clients/:clientId", protect, adminOnly, getClientDetails);
 // Route for fetching applications for a specific client
 router.get("/clients/:clientId/applications", protect, adminOnly, getClientApplications);
 
+// Route to reassign a client to an employee and/or agent
+router.put("/clients/:clientId/reassign", protect, adminOnly, reassignClient);
+
 // Route for fetching all applications (for admin applications page) - MUST come before specific routes
 router.get("/applications", protect, adminOnly, getAllApplications);
 
 // Route for updating application status (for Request Documents, etc.)
-router.patch("/applications/:id/status", protect, adminOnly, updateApplicationStatus);
+router.put("/applications/:id/status", protect, adminOnly, updateApplicationStatus);
+
+// Backward-compatible data endpoint used by frontend to refresh lists
+router.get("/public/data", protect, adminOnly, getAllClientsAndApplications);
 
 export default router;
