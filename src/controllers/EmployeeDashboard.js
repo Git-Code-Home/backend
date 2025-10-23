@@ -1647,6 +1647,10 @@ export const assignClientToAgent = async (req, res) => {
       return res.status(400).json({ message: "Invalid agentId" });
     }
 
+    // Persist assignment on Client so agent can see the client list even without applications
+    client.assignedAgent = agent._id;
+    await client.save();
+
     // Assign all applications for this client to the agent and clear processedBy
     const upd = await Application.updateMany(
       { client: client._id },

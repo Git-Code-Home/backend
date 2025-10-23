@@ -1,5 +1,6 @@
 // controllers/agentController.js
 import User from "../models/User.js";
+import Client from "../models/Client.js";
 import Application from "../models/Application.js";
 import Notification from "../models/Notification.js";
 import jwt from "jsonwebtoken";
@@ -58,9 +59,39 @@ export const updateAgentProfile = async (req, res) => {
 // ✅ Get All Assigned Clients
 export const getAssignedClients = async (req, res) => {
   try {
-    const clients = await User.find({ assignedTo: req.user._id, role: "client" });
-    res.json(clients);
+    // Option A: directly assigned on Client
+    const clientsByFlag = await Client.find({ assignedAgent: req.user._id }).lean();
+
+    // Option B: inferred via Applications
+    const apps = await Application.find({ agent: req.user._id }).select("client").lean();
+    const appClientIds = [...new Set(apps.map((a) => String(a.client)))];
+
+    let clientsByApps = [];
+    if (appClientIds.length > 0) {
+      clientsByApps = await Client.find({ _id: { $in: appClientIds } }).lean();
+    }
+
+    // Merge unique clients
+    const map = new Map();
+    for (const c of [...clientsByFlag, ...clientsByApps]) {
+      map.set(String(c._id), c);
+    }
+    res.json(Array.from(map.values()));
   } catch (error) {
+    console.error("[getAssignedClients] error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ✅ Get agent's own applications
+export const getAgentApplications = async (req, res) => {
+  try {
+    const applications = await Application.find({ agent: req.user._id })
+      .populate("client")
+      .lean();
+    res.json(applications);
+  } catch (error) {
+    console.error("[getAgentApplications] error:", error);
     res.status(500).json({ message: error.message });
   }
 };

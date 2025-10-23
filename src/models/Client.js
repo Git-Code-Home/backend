@@ -9,7 +9,8 @@ const clientSchema = new mongoose.Schema(
     phone: { type: String, required: true, unique: true },
     nationality: { type: String },
     unqualified: { type: Boolean, default: false },
-    assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  assignedAgent: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
 
     profile: {
       address: { type: String },
