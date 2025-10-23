@@ -221,8 +221,9 @@ router.put("/clients/:clientId/reassign", protect, adminOnly, reassignClient);
 // Route for fetching all applications (for admin applications page) - MUST come before specific routes
 router.get("/applications", protect, adminOnly, getAllApplications);
 
-// Route for updating application status (for Request Documents, etc.)
+// Route for updating application status (for Request Documents, etc.) - Accept both PUT and PATCH
 router.put("/applications/:id/status", protect, adminOnly, updateApplicationStatus);
+router.patch("/applications/:id/status", protect, adminOnly, updateApplicationStatus);
 
 // Backward-compatible data endpoint used by frontend to refresh lists
 router.get("/public/data", protect, adminOnly, getAllClientsAndApplications);
