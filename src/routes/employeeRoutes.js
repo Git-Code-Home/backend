@@ -102,7 +102,8 @@ import {
   createApplication,
   uploadDocuments,
   getMyClients,
-  getMyApplications
+  getMyApplications,
+  assignClientToAgent,
 } from "../controllers/EmployeeDashboard.js";
 import { protect, employeeOnly } from "../middlewares/authMiddleware.js";
 // import { authenticateEmployee } from '../middlewares/authMiddleware.js'
@@ -137,10 +138,7 @@ router.get("/my-clients", protect, employeeOnly, getMyClients);
 
 // list my applications
 router.get("/my-applications", protect, employeeOnly, getMyApplications);
-router.post('/assign-client', async (req, res) => { 
-  const { agentId, clientId } = req.body;
-  // Your logic to assign client to agent
-  // Update your database accordingly
-  res.json({ message: 'Client assigned successfully' });
-});
+
+// assign a client's applications to an agent (employee-only)
+router.post('/assign-client', protect, employeeOnly, assignClientToAgent);
 export default router;

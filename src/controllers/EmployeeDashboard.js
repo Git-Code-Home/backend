@@ -1618,3 +1618,47 @@ export const getReportsSummary = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// ------------------ ASSIGN CLIENT TO AGENT (EMPLOYEE) ------------------
+// @route   POST /api/employee/assign-client
+// @access  Private (Employee)
+// Body: { clientId: string, agentId: string }
+export const assignClientToAgent = async (req, res) => {
+  try {
+    const { clientId, agentId } = req.body || {};
+
+    if (!clientId || !agentId) {
+      return res.status(400).json({ message: "clientId and agentId are required" });
+    }
+
+    const client = await Client.findById(clientId);
+    if (!client) {
+      return res.status(404).json({ message: "Client not found" });
+    }
+
+    // Ensure the current employee is assigned to this client
+    if (String(client.assignedTo) !== String(req.user._id)) {
+      return res.status(403).json({ message: "You are not assigned to this client" });
+    }
+
+    // Validate agent exists and has correct role
+    const agent = await User.findOne({ _id: agentId, role: "agent" });
+    if (!agent) {
+      return res.status(400).json({ message: "Invalid agentId" });
+    }
+
+    // Assign all applications for this client to the agent and clear processedBy
+    const upd = await Application.updateMany(
+      { client: client._id },
+      { $set: { agent: agent._id, processedBy: null } }
+    );
+
+    return res.json({
+      message: "Client applications assigned to agent",
+      updatedApplications: upd?.modifiedCount ?? 0,
+    });
+  } catch (error) {
+    console.error("[assignClientToAgent] error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
