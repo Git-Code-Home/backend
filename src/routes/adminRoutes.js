@@ -193,7 +193,8 @@ import {
   getClientApplications, 
   updateApplicationStatus,
   getAllApplications,
-  reassignClient
+  reassignClient,
+  getReportsSummary
 } from "../controllers/EmployeeDashboard.js";
 
 const router = express.Router();
@@ -225,5 +226,8 @@ router.put("/applications/:id/status", protect, adminOnly, updateApplicationStat
 
 // Backward-compatible data endpoint used by frontend to refresh lists
 router.get("/public/data", protect, adminOnly, getAllClientsAndApplications);
+
+// Reports summary endpoint
+router.get("/reports/summary", protect, adminOnly, getReportsSummary);
 
 export default router;

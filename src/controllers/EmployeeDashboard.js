@@ -1531,3 +1531,90 @@ export const reassignClient = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// ------------------ REPORTS SUMMARY (ADMIN) ------------------
+// @route   GET /api/admin/reports/summary?range=daily|weekly|last-30-days|last-3-months|last-6-months|last-year
+// @access  Private (Admin)
+export const getReportsSummary = async (req, res) => {
+  try {
+    const { range = "last-6-months" } = req.query;
+
+    const now = new Date();
+    const start = new Date(now);
+    switch (range) {
+      case "daily":
+        start.setDate(now.getDate() - 1); // last 24 hours
+        break;
+      case "weekly":
+        start.setDate(now.getDate() - 7);
+        break;
+      case "last-30-days":
+        start.setDate(now.getDate() - 30);
+        break;
+      case "last-3-months":
+        start.setMonth(now.getMonth() - 3);
+        break;
+      case "last-6-months":
+        start.setMonth(now.getMonth() - 6);
+        break;
+      case "last-year":
+        start.setFullYear(now.getFullYear() - 1);
+        break;
+      default:
+        start.setMonth(now.getMonth() - 6);
+        break;
+    }
+
+    // Filter applications within range
+    const match = { createdAt: { $gte: start } };
+
+    const totalApplications = await Application.countDocuments(match);
+    const approvedCount = await Application.countDocuments({ ...match, applicationStatus: "approved" });
+    const rejectedCount = await Application.countDocuments({ ...match, applicationStatus: "rejected" });
+
+    // Sum revenue from paid invoices
+    const revenueAgg = await Application.aggregate([
+      { $match: match },
+      { $match: { "invoice.paid": true } },
+      { $group: { _id: null, total: { $sum: { $ifNull: ["$invoice.amount", 0] } } } },
+    ]);
+    const revenue = revenueAgg[0]?.total || 0;
+
+    // Average processing time (days) for approved apps using issueDate if present, fallback to updatedAt
+    const procAgg = await Application.aggregate([
+      { $match: { ...match, applicationStatus: "approved" } },
+      {
+        $project: {
+          start: "$createdAt",
+          end: { $ifNull: ["$issueDate", "$updatedAt"] },
+        },
+      },
+      {
+        $project: {
+          diffDays: { $divide: [{ $subtract: ["$end", "$start"] }, 1000 * 60 * 60 * 24] },
+        },
+      },
+      { $group: { _id: null, avg: { $avg: "$diffDays" } } },
+    ]);
+    const avgProcessingDays = Number((procAgg[0]?.avg || 0).toFixed(1));
+
+    const approvalRate = totalApplications > 0 ? Number(((approvedCount / totalApplications) * 100).toFixed(1)) : 0;
+
+    return res.json({
+      range,
+      startDate: start,
+      endDate: now,
+      totals: {
+        totalApplications,
+        approved: approvedCount,
+        rejected: rejectedCount,
+        approvalRate,
+        avgProcessingDays,
+        revenue,
+      },
+    });
+  } catch (error) {
+    console.error("[getReportsSummary] error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
