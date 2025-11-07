@@ -223,8 +223,9 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 // Respond to preflight requests for all routes
-// Use '*' (Express-compatible) instead of '/*' which can break some servers
-app.options("*", cors(corsOptions));
+// Use '/*' as a catch-all path for middleware registration to be compatible
+// with the current path-to-regexp behavior used by the platform.
+app.options("/*", cors(corsOptions));
 
 app.use(express.json());
 
@@ -305,10 +306,10 @@ if (process.env.NODE_ENV !== "production") {
   app.listen(PORT, () => console.log(`🚀 Local Server: http://localhost:${PORT}`));
 }
 
-// Final fallback for any unmatched routes.
-// Use app.use("*", ...) (not "/*") so path-to-regexp won't throw in some serverless envs.
+// Final fallback for any unmatched routes. Use a path pattern that avoids
+// path-to-regexp parameter parsing issues on the platform.
 // We return a 404 JSON response which is safer for API-only deployments.
-app.use("*", (req, res) => {
+app.use("/*", (req, res) => {
   res.status(404).json({ ok: false, message: "Not Found" });
 });
 
