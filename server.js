@@ -201,24 +201,29 @@ const app = express();
 // ❌ Remove local uploads folder serving (Vercel doesn’t support writing files)
 // app.use("/uploads", express.static(path.join(__dirname, "/uploads")));
 
-// ✅ CORS setup
-const allowlist = new Set([
+// ✅ CORS setup - allow only local dev hosts and the production frontend
+const allowedOrigins = new Set([
   "http://localhost:8080",
   "http://localhost:5173",
   "https://sherrytravels-webapp.vercel.app",
 ]);
+
 const corsOptions = {
-  origin: (origin, cb) => {
-    if (!origin) return cb(null, true);
-    const isVercel = /\.vercel\.app$/i.test(origin);
-    if (allowlist.has(origin) || isVercel) return cb(null, true);
-    return cb(new Error(`CORS blocked for origin: ${origin}`));
+  origin: (origin, callback) => {
+    // Allow server-to-server or tools with no origin
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.has(origin)) return callback(null, true);
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
   },
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "Accept", "X-Requested-With"],
   credentials: true,
+  optionsSuccessStatus: 204,
 };
+
 app.use(cors(corsOptions));
+// Respond to preflight requests for all routes
+app.options("/*", cors(corsOptions));
 
 app.use(express.json());
 
