@@ -59,7 +59,7 @@
 // };
 
 // app.use(cors(corsOptions));
-// app.options("/*", cors(corsOptions));
+// app.options("*", cors(corsOptions));
 
 // app.use(express.json());
 
@@ -99,7 +99,7 @@
 // app.use("/api/admin/commissions", adminCommissionRoutes);
 // app.use("/api/agent/commissions", agentCommissionRoutes);
 
-// app.get("/*", (req, res) => {
+// app.get("*", (req, res) => {
 //   res.send("\ud83d\ude80 Dubai Visa Application API is running");
 // });
 
@@ -223,7 +223,8 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 // Respond to preflight requests for all routes
-app.options("/*", cors(corsOptions));
+// Use '*' (Express-compatible) instead of '/*' which can break some servers
+app.options("*", cors(corsOptions));
 
 app.use(express.json());
 
@@ -303,5 +304,12 @@ if (process.env.NODE_ENV !== "production") {
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => console.log(`🚀 Local Server: http://localhost:${PORT}`));
 }
+
+// Final fallback for any unmatched routes.
+// Use app.use("*", ...) (not "/*") so path-to-regexp won't throw in some serverless envs.
+// We return a 404 JSON response which is safer for API-only deployments.
+app.use("*", (req, res) => {
+  res.status(404).json({ ok: false, message: "Not Found" });
+});
 
 export default app;
