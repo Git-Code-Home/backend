@@ -22,7 +22,8 @@ export const protect = async (req, res, next) => {
       req.user = user; // ✅ set user for downstream middlewares
       next();
     } catch (error) {
-      console.error(error);
+      // Log token verification error without exposing sensitive token data
+      console.error("protect middleware token error:", error && error.message ? error.message : error);
       return res.status(401).json({ message: "Not authorized, token failed" });
     }
   } else {
