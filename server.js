@@ -316,6 +316,146 @@
 // export default app;
 
 
+// import dotenv from "dotenv";
+// import express from "express";
+// import mongoose from "mongoose";
+// import cors from "cors";
+// import bcrypt from "bcryptjs";
+// import path from "path";
+// import { fileURLToPath } from "url";
+
+// import adminRoutes from "./src/routes/adminRoutes.js";
+// import employeeRoutes from "./src/routes/employeeRoutes.js";
+// import agentRoutes from "./src/routes/agentRoutes.js";
+// import controllRoutes from "./src/routes/controllRoutes.js";
+// import User from "./src/models/User.js";
+// import paymentRoutes from "./src/routes/paymentRoutes.js";
+// import adminDebugData from "./src/routes/adminDebugData.js";
+// import adminCommissionRoutes from "./src/routes/adminCommissionRoutes.js";
+// import agentCommissionRoutes from "./src/routes/agentCommissionRoutes.js";
+// import { connectDB } from "./src/config/db.js";
+
+// dotenv.config(); // single dotenv load — works fine in Vercel
+
+// // ---------------- SETUP ----------------
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = path.dirname(__filename);
+
+// const app = express();
+
+// // ---------------- MIDDLEWARE ----------------
+
+// // ✅ CORS setup - allow only local dev hosts and the production frontend
+// const allowedOrigins = new Set([
+//   "http://localhost:8080",
+//   "http://localhost:5173",
+//   "https://sherrytravels-webapp.vercel.app",
+// ]);
+
+// const corsOptions = {
+//   origin: (origin, callback) => {
+//     if (!origin) return callback(null, true);
+//     if (allowedOrigins.has(origin)) return callback(null, true);
+//     return callback(new Error(`CORS blocked for origin: ${origin}`));
+//   },
+//   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+//   allowedHeaders: ["Content-Type", "Authorization", "Accept", "X-Requested-With"],
+//   credentials: true,
+//   optionsSuccessStatus: 204,
+// };
+
+// app.use(cors(corsOptions));
+// // Respond to preflight requests for all routes
+// app.options("*", cors(corsOptions));
+
+// app.use(express.json());
+
+// // ---------------- DATABASE CONNECTION ----------------
+// let isConnected = false;
+// const ensureConnected = async () => {
+//   if (isConnected && mongoose.connection.readyState === 1) return;
+//   await connectDB();
+//   isConnected = mongoose.connection.readyState === 1;
+// };
+
+// // connect once at cold start
+// await ensureConnected().catch((err) => console.error("❌ Initial DB connect failed:", err.message));
+
+// // ---------------- ROUTES ----------------
+// app.use(adminDebugData);
+// app.use("/api/admin", adminRoutes);
+// app.use("/api/employee", employeeRoutes);
+// app.use("/api/agent", agentRoutes);
+// app.use("/api/public/agents", controllRoutes);
+// app.use("/api/payments", paymentRoutes);
+// app.use("/api/admin/commissions", adminCommissionRoutes);
+// app.use("/api/agent/commissions", agentCommissionRoutes);
+
+// app.get("/", (req, res) => {
+//   res.send("🚀 Dubai Visa Application API is running fine on Vercel!");
+// });
+
+// // Simple DB health endpoint
+// app.get("/api/health/db", async (req, res) => {
+//   try {
+//     const state = mongoose.connection.readyState;
+//     res.json({ ok: state === 1, state });
+//   } catch (e) {
+//     res.status(500).json({ ok: false, message: e.message });
+//   }
+// });
+
+// // ---------------- CREATE DEFAULT ADMIN ----------------
+// const createAdminIfNotExists = async () => {
+//   try {
+//     const email = process.env.ADMIN_EMAIL;
+//     const plain = process.env.ADMIN_PASSWORD || "";
+
+//     const admin = await User.findOne({ email, role: "admin" });
+
+//     if (!admin) {
+//       await User.create({
+//         name: "Admin",
+//         email,
+//         password: plain,
+//         role: "admin",
+//         designation: "Super Admin",
+//         phone: "1234567890",
+//         status: "Active",
+//       });
+//       console.log("✅ Default Admin Created");
+//       return;
+//     }
+
+//     const matches = await bcrypt.compare(plain, admin.password);
+//     if (!matches) {
+//       admin.password = plain;
+//       await admin.save();
+//       console.log("🔄 Admin password reset from env");
+//     }
+//   } catch (err) {
+//     console.error("❌ createAdminIfNotExists:", err.message);
+//   }
+// };
+
+// // Run only once at cold start
+// await createAdminIfNotExists();
+
+// // ---------------- LOCAL DEV SERVER ----------------
+// if (process.env.NODE_ENV !== "production") {
+//   const PORT = process.env.PORT || 5000;
+//   app.listen(PORT, () => console.log(`🚀 Local Server: http://localhost:${PORT}`));
+// }
+
+// // ---------------- CATCH-ALL FALLBACK ----------------
+// // ✅ FIXED: Removed "/*" — Express automatically matches all routes
+// app.use((req, res) => {
+//   res.status(404).json({ ok: false, message: "Not Found" });
+// });
+
+// export default app;
+
+
 import dotenv from "dotenv";
 import express from "express";
 import mongoose from "mongoose";
@@ -335,7 +475,7 @@ import adminCommissionRoutes from "./src/routes/adminCommissionRoutes.js";
 import agentCommissionRoutes from "./src/routes/agentCommissionRoutes.js";
 import { connectDB } from "./src/config/db.js";
 
-dotenv.config(); // single dotenv load — works fine in Vercel
+dotenv.config(); // ✅ Load environment variables
 
 // ---------------- SETUP ----------------
 const __filename = fileURLToPath(import.meta.url);
@@ -345,7 +485,7 @@ const app = express();
 
 // ---------------- MIDDLEWARE ----------------
 
-// ✅ CORS setup - allow only local dev hosts and the production frontend
+// ✅ Proper CORS setup - allow only approved origins
 const allowedOrigins = new Set([
   "http://localhost:8080",
   "http://localhost:5173",
@@ -354,7 +494,7 @@ const allowedOrigins = new Set([
 
 const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
+    if (!origin) return callback(null, true); // Allow server-to-server
     if (allowedOrigins.has(origin)) return callback(null, true);
     return callback(new Error(`CORS blocked for origin: ${origin}`));
   },
@@ -365,13 +505,13 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-// Respond to preflight requests for all routes
-app.options("*", cors(corsOptions));
+app.options("*", cors(corsOptions)); // Handle preflight requests globally
 
 app.use(express.json());
 
 // ---------------- DATABASE CONNECTION ----------------
 let isConnected = false;
+
 const ensureConnected = async () => {
   if (isConnected && mongoose.connection.readyState === 1) return;
   await connectDB();
@@ -379,7 +519,9 @@ const ensureConnected = async () => {
 };
 
 // connect once at cold start
-await ensureConnected().catch((err) => console.error("❌ Initial DB connect failed:", err.message));
+await ensureConnected().catch((err) =>
+  console.error("❌ Initial DB connect failed:", err.message)
+);
 
 // ---------------- ROUTES ----------------
 app.use(adminDebugData);
@@ -410,6 +552,11 @@ const createAdminIfNotExists = async () => {
   try {
     const email = process.env.ADMIN_EMAIL;
     const plain = process.env.ADMIN_PASSWORD || "";
+
+    if (!email || !plain) {
+      console.warn("⚠️ ADMIN_EMAIL or ADMIN_PASSWORD not set in .env");
+      return;
+    }
 
     const admin = await User.findOne({ email, role: "admin" });
 
@@ -448,7 +595,7 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 // ---------------- CATCH-ALL FALLBACK ----------------
-// ✅ FIXED: Removed "/*" — Express automatically matches all routes
+// ✅ FIXED: Removed invalid "/*" — use default handler instead
 app.use((req, res) => {
   res.status(404).json({ ok: false, message: "Not Found" });
 });
