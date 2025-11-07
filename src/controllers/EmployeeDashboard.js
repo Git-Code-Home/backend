@@ -1342,11 +1342,27 @@ export const getMyApplications = async (req, res) => {
 // @access  Private (Admin)
 export const getAllClientsAndApplications = async (req, res) => {
   try {
-    const clients = await Client.find()
+    // Support optional server-side filtering by agentId
+    const { agentId } = req.query || {};
+
+    const clientFilter = {};
+    if (agentId) {
+      // clients may reference agent via assignedAgent or assignedTo
+      clientFilter.$or = [{ assignedAgent: agentId }, { assignedTo: agentId }];
+    }
+
+    const clients = await Client.find(clientFilter)
       .populate("assignedTo", "name email")
       .lean();
 
-    const applications = await Application.find()
+    // If agentId was provided, narrow applications to those belonging to the matched clients
+    const applicationsFilter = {};
+    if (agentId && Array.isArray(clients) && clients.length > 0) {
+      const clientIds = clients.map((c) => c._id);
+      applicationsFilter.client = { $in: clientIds };
+    }
+
+    const applications = await Application.find(applicationsFilter)
       .populate("client")
       .populate("processedBy", "name email")
       .lean();
@@ -1398,7 +1414,13 @@ export const getClientApplications = async (req, res) => {
 // @access  Private (Admin)
 export const getAllApplications = async (req, res) => {
   try {
-    const applications = await Application.find()
+    // Allow filtering by clientId and status via query params
+    const { clientId, status } = req.query || {};
+    const filter = {};
+    if (clientId) filter.client = clientId;
+    if (status) filter.applicationStatus = status;
+
+    const applications = await Application.find(filter)
       .populate("client")
       .populate("processedBy", "name email")
       .lean();
