@@ -9,6 +9,9 @@ import {
   getCommissionSummary,
   withdrawCommission,
   getAgentNotifications,
+  getAgentApplicationById,
+  approveApplication,
+  rejectApplication,
 } from "../controllers/agentController.js"
 import { protect, agentOnly } from "../middlewares/authMiddleware.js"
 import { upload } from "../middlewares/uploadMiddleware.js"
@@ -20,6 +23,7 @@ router.get("/profile", protect, agentOnly, getAgentProfile)
 router.put("/profile", protect, agentOnly, updateAgentProfile)
 router.get("/clients", protect, agentOnly, getAssignedClients)
 router.get("/applications", protect, agentOnly, getAgentApplications)
+router.get("/applications/:id", protect, agentOnly, getAgentApplicationById)
 
 // ✅ Cloudinary upload for application documents
 router.post(
@@ -37,5 +41,9 @@ router.post(
 router.get("/commission", protect, agentOnly, getCommissionSummary)
 router.post("/withdraw", protect, agentOnly, withdrawCommission)
 router.get("/notifications", protect, agentOnly, getAgentNotifications)
+
+// Agent actions: approve/reject an application (ownership validated in controller)
+router.patch("/applications/:id/approve", protect, agentOnly, approveApplication)
+router.patch("/applications/:id/reject", protect, agentOnly, rejectApplication)
 
 export default router

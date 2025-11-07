@@ -176,3 +176,65 @@ export const getAgentNotifications = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Get single application by id (agent-only, must own application)
+export const getAgentApplicationById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const application = await Application.findById(id).populate("client").lean();
+    if (!application) return res.status(404).json({ message: "Application not found" });
+
+    // ownership check: application.agent may be ObjectId or populated object
+    const appAgentId = application.agent ? String(application.agent) : null;
+    if (!appAgentId || String(req.user._id) !== String(appAgentId)) {
+      return res.status(403).json({ message: "Not authorized to view this application" });
+    }
+
+    return res.json(application);
+  } catch (error) {
+    console.error("getAgentApplicationById error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Approve application (agent-only, ownership check)
+export const approveApplication = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const application = await Application.findById(id).populate("client");
+    if (!application) return res.status(404).json({ message: "Application not found" });
+
+    if (String(application.agent) !== String(req.user._id)) {
+      return res.status(403).json({ message: "Not authorized to modify this application" });
+    }
+
+    application.applicationStatus = "approved";
+    await application.save();
+    const out = await Application.findById(id).populate("client").lean();
+    res.json(out);
+  } catch (error) {
+    console.error("approveApplication error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Reject application (agent-only, ownership check)
+export const rejectApplication = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const application = await Application.findById(id).populate("client");
+    if (!application) return res.status(404).json({ message: "Application not found" });
+
+    if (String(application.agent) !== String(req.user._id)) {
+      return res.status(403).json({ message: "Not authorized to modify this application" });
+    }
+
+    application.applicationStatus = "rejected";
+    await application.save();
+    const out = await Application.findById(id).populate("client").lean();
+    res.json(out);
+  } catch (error) {
+    console.error("rejectApplication error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
