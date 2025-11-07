@@ -196,6 +196,7 @@ import {
   reassignClient,
   getReportsSummary
 } from "../controllers/EmployeeDashboard.js";
+import { getClientsByAgent } from "../controllers/adminController.js";
 
 const router = express.Router();
 
@@ -206,8 +207,9 @@ router.get("/employees", protect, adminOnly, getEmployees);
 router.put("/edit-employee/:id", protect, adminOnly, editEmployee);
 router.delete('/delete-employee/:id', protect, adminOnly, deleteEmployee);
 
-// Route for fetching all clients and applications
-router.get("/clients", protect, adminOnly, getAllClientsAndApplications);
+// Route for fetching all clients and applications (or filtered by ?agentId=)
+// If agentId is provided, getClientsByAgent will return only that agent's clients.
+router.get("/clients", protect, adminOnly, getClientsByAgent);
 
 // Route for fetching a single client's details
 router.get("/clients/:clientId", protect, adminOnly, getClientDetails);
