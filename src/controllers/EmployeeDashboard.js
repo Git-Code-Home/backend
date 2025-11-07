@@ -1367,6 +1367,11 @@ export const getAllClientsAndApplications = async (req, res) => {
       .populate("processedBy", "name email")
       .lean();
 
+    // If agentId was provided, return only the clients array for easier client-side consumption
+    if (agentId) {
+      return res.status(200).json(clients);
+    }
+
     res.status(200).json({ clients, applications });
   } catch (error) {
     console.error("Error fetching clients & applications:", error);
