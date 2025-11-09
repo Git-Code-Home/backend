@@ -620,6 +620,8 @@ import paymentRoutes from "./src/routes/paymentRoutes.js";
 import adminDebugData from "./src/routes/adminDebugData.js";
 import adminCommissionRoutes from "./src/routes/adminCommissionRoutes.js";
 import agentCommissionRoutes from "./src/routes/agentCommissionRoutes.js";
+import countryRoutes from "./src/routes/countryRoutes.js";
+import templateRoutes from "./src/routes/templateRoutes.js";
 import { connectDB } from "./src/config/db.js";
 
 dotenv.config();
@@ -675,6 +677,9 @@ app.use("/api/public/agents", controllRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/admin/commissions", adminCommissionRoutes);
 app.use("/api/agent/commissions", agentCommissionRoutes);
+// Public country and template endpoints (multi-country foundation)
+app.use("/api/countries", countryRoutes);
+app.use("/api/templates", templateRoutes);
 
 app.get("/", (req, res) => {
   res.send("🚀 Dubai Visa Application API is running fine on Vercel!");

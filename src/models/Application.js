@@ -46,6 +46,13 @@ const applicationSchema = new mongoose.Schema({
   visaDuration: {
     type: String,
   },
+  // Multi-country support
+  country: { type: String, default: "dubai" },
+  formData: { type: mongoose.Schema.Types.Mixed, default: {} },
+  // NOTE: `documents` previously existed as an object with specific keys.
+  // We keep that existing shape for backward compatibility. If you prefer
+  // an array-style documents field, add a new field name to avoid breaking
+  // existing code. We will not overwrite the existing `documents` field.
   invoice: {
     paid: { type: Boolean, default: false },
     amount: { type: Number },
