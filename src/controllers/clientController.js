@@ -103,6 +103,36 @@ export const loginClient = async (req, res) => {
   }
 };
 
+// List applications for authenticated client
+export const listClientApplications = async (req, res) => {
+  try {
+    const client = req.client;
+    if (!client) return res.status(401).json({ message: "Not authenticated" });
+
+    const apps = await Application.find({ client: client._id })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Map to a simpler shape for frontend convenience
+    const mapped = apps.map((a) => ({
+      _id: a._id,
+      visaType: a.visaType,
+      applicationStatus: a.applicationStatus || a.status || a.applicationStatus,
+      submitDate: a.createdAt,
+      issueDate: a.issueDate,
+      expiryDate: a.expiryDate,
+      documents: a.documents || {},
+      country: a.country,
+      formData: a.formData || {},
+    }));
+
+    res.json(mapped);
+  } catch (err) {
+    console.error("listClientApplications error:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // Upload documents for client application
 export const uploadClientDocuments = async (req, res) => {
   try {
@@ -206,4 +236,4 @@ export const uploadClientDocuments = async (req, res) => {
   }
 };
 
-export default { createClientApplication, uploadClientDocuments };
+export default { createClientApplication, uploadClientDocuments, listClientApplications };
