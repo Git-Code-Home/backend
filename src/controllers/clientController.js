@@ -1,6 +1,9 @@
 import Client from "../models/Client.js";
 import Application from "../models/Application.js";
 import cloudinary from "../config/cloudinary.js";
+import jwt from "jsonwebtoken";
+
+const generateToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" });
 
 // Create application by authenticated client
 export const createClientApplication = async (req, res) => {
@@ -27,6 +30,31 @@ export const createClientApplication = async (req, res) => {
     res.status(201).json(application);
   } catch (err) {
     console.error("createClientApplication error:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Client login - public
+export const loginClient = async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) return res.status(400).json({ message: "Email and password required" });
+
+    const client = await Client.findOne({ email: email.toLowerCase() });
+    if (!client) return res.status(401).json({ message: "Invalid credentials" });
+
+    const isMatch = await client.matchPassword(password);
+    if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
+
+    res.json({
+      _id: client._id,
+      name: client.name,
+      email: client.email,
+      phone: client.phone,
+      token: generateToken(client._id),
+    });
+  } catch (err) {
+    console.error("loginClient error:", err);
     res.status(500).json({ message: err.message });
   }
 };
