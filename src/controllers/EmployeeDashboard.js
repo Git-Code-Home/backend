@@ -1190,12 +1190,38 @@ export const registerClient = async (req, res) => {
 // @access  Private (Employee)
 export const createApplication = async (req, res) => {
   try {
-    const { clientId, visaType, visaDuration } = req.body;
+    const { clientId, visaType, visaDuration, country, formData } = req.body;
+
+    if (!clientId) return res.status(400).json({ message: "clientId is required" });
+    if (!visaType) return res.status(400).json({ message: "visaType is required" });
+
+    // Server-side validation against FormTemplate when formData provided
+    try {
+      const FormTemplate = (await import("../models/FormTemplate.js")).default;
+      const tpl = await FormTemplate.findOne({ countrySlug: country || "dubai" }).lean();
+      if (tpl && Array.isArray(tpl.fields)) {
+        const requiredKeys = tpl.fields.filter((f) => f.required).map((f) => f.key).filter(Boolean);
+        const missing = [];
+        for (const k of requiredKeys) {
+          const val = formData ? formData[k] : undefined;
+          if (val === undefined || val === null || (typeof val === "string" && String(val).trim() === "")) {
+            missing.push(k);
+          }
+        }
+        if (missing.length > 0) {
+          return res.status(400).json({ message: "Missing required form fields", missing });
+        }
+      }
+    } catch (err) {
+      console.warn("Template validation skipped (could not load template):", err && err.message ? err.message : err);
+    }
 
     const application = await Application.create({
       client: clientId,
       visaType,
       visaDuration,
+      country: country || "dubai",
+      formData: formData || {},
       processedBy: req.user._id,
       status: "processing",
       paymentStatus: "unpaid",

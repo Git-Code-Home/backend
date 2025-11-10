@@ -49,10 +49,14 @@ const seed = async () => {
       { key: "fullName", label: "Full Name", type: "text", required: true },
       { key: "passportNumber", label: "Passport Number", type: "text", required: true },
       { key: "purpose", label: "Purpose of travel", type: "select", required: true, options: ["tourism", "business", "study", "family"] },
-      { key: "email", label: "Email", type: "text", required: false },
-      { key: "phone", label: "Phone", type: "text", required: false },
+      { key: "familyDetails", label: "Family Details", type: "text", required: false },
+      { key: "frc_mrc", label: "FRC/MRC", type: "text", required: false },
+      { key: "travelDate", label: "Travel Date", type: "date", required: false },
+      { key: "travelHistory", label: "Travel History", type: "text", required: false },
+      { key: "tradeLicenseNumber", label: "Trade License", type: "text", required: false },
+      { key: "additionalDocuments", label: "Additional Documents", type: "text", required: false },
     ],
-    requiredDocs: ["passport", "idCard", "bankStatement"],
+    requiredDocs: ["passport", "picture", "bankStatement", "noc", "salaryCertificate", "tradeLicense"],
     formPdfUrl: "",
   };
 
@@ -69,8 +73,11 @@ const seed = async () => {
       { key: "intendedEntryDate", label: "Intended Entry Date", type: "date", required: false },
       { key: "durationDays", label: "Duration (days)", type: "number", required: false },
       { key: "accommodationAddress", label: "Accommodation Address", type: "text", required: false },
+      { key: "maritalStatus", label: "Marital Status", type: "select", required: false, options: ["Married", "Single"] },
+      { key: "travelHistory", label: "Travel History", type: "text", required: false },
+      { key: "additionalDocuments", label: "Additional Documents", type: "text", required: false },
     ],
-    requiredDocs: ["passport", "photo", "travelItinerary", "travelInsurance", "bankStatement"],
+    requiredDocs: ["passport", "idCard", "picture", "bankStatement", "noc", "salaryCertificate"],
     formPdfUrl: "",
   };
 
