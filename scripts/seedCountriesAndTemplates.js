@@ -56,7 +56,20 @@ const seed = async () => {
       { key: "tradeLicenseNumber", label: "Trade License", type: "text", required: false },
       { key: "additionalDocuments", label: "Additional Documents", type: "text", required: false },
     ],
-    requiredDocs: ["passport", "picture", "bankStatement", "noc", "salaryCertificate", "tradeLicense"],
+    // Use exact document identifiers per spec
+    requiredDocs: [
+      "Passport",
+      "Picture",
+      "Bank statement",
+      "NOC",
+      "Salary certificate",
+      "Family details",
+      "FRC/MRC",
+      "Travel date",
+      "Travel history",
+      "Trade license",
+      "Additional documents",
+    ],
     formPdfUrl: "",
   };
 
@@ -77,7 +90,18 @@ const seed = async () => {
       { key: "travelHistory", label: "Travel History", type: "text", required: false },
       { key: "additionalDocuments", label: "Additional Documents", type: "text", required: false },
     ],
-    requiredDocs: ["passport", "idCard", "picture", "bankStatement", "noc", "salaryCertificate"],
+    // Use exact document identifiers per spec (use exact casing/phrasing requested)
+    requiredDocs: [
+      "Passport",
+      "ID card",
+      "Picture",
+      "Bank statement (3–6 months)",
+      "NOC",
+      "Salary certificate",
+      "Marital status (Married/Single)",
+      "Travel history",
+      "Additional documents",
+    ],
     formPdfUrl: "",
   };
 
@@ -130,6 +154,64 @@ const seed = async () => {
     await FormTemplate.updateOne({ countrySlug: t.countrySlug }, { $set: t }, { upsert: true });
   }
   console.log("Form templates seeded/updated")
+
+  // After templates are upserted, associate Schengen member countries with the Schengen template id
+  try {
+    const schengenTpl = await FormTemplate.findOne({ countrySlug: "schengen" }).lean();
+    if (schengenTpl) {
+      // List of common Schengen member countries (slug should be unique)
+      const schengenMembers = [
+        { name: "Austria", slug: "austria" },
+        { name: "Belgium", slug: "belgium" },
+        { name: "Czech Republic", slug: "czech-republic" },
+        { name: "Denmark", slug: "denmark" },
+        { name: "Estonia", slug: "estonia" },
+        { name: "Finland", slug: "finland" },
+        { name: "France", slug: "france" },
+        { name: "Germany", slug: "germany" },
+        { name: "Greece", slug: "greece" },
+        { name: "Hungary", slug: "hungary" },
+        { name: "Iceland", slug: "iceland" },
+        { name: "Italy", slug: "italy" },
+        { name: "Latvia", slug: "latvia" },
+        { name: "Liechtenstein", slug: "liechtenstein" },
+        { name: "Lithuania", slug: "lithuania" },
+        { name: "Luxembourg", slug: "luxembourg" },
+        { name: "Malta", slug: "malta" },
+        { name: "Netherlands", slug: "netherlands" },
+        { name: "Norway", slug: "norway" },
+        { name: "Poland", slug: "poland" },
+        { name: "Portugal", slug: "portugal" },
+        { name: "Slovakia", slug: "slovakia" },
+        { name: "Slovenia", slug: "slovenia" },
+        { name: "Spain", slug: "spain" },
+        { name: "Sweden", slug: "sweden" },
+        { name: "Switzerland", slug: "switzerland" },
+      ];
+
+      for (const m of schengenMembers) {
+        await Country.updateOne(
+          { slug: m.slug },
+          {
+            $set: {
+              name: m.name,
+              slug: m.slug,
+              region: "schengen",
+              active: true,
+              formTemplate: schengenTpl._id,
+            },
+          },
+          { upsert: true }
+        );
+      }
+
+      console.log("Schengen member countries seeded and linked to Schengen template");
+    } else {
+      console.warn("Schengen template not found; skipping linking members.");
+    }
+  } catch (err) {
+    console.error("Failed to link Schengen members:", err);
+  }
 
   process.exit(0);
 };

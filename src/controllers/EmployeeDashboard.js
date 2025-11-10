@@ -1196,9 +1196,23 @@ export const createApplication = async (req, res) => {
     if (!visaType) return res.status(400).json({ message: "visaType is required" });
 
     // Server-side validation against FormTemplate when formData provided
-    try {
+    const resolveTemplateForCountry = async (countrySlug) => {
       const FormTemplate = (await import("../models/FormTemplate.js")).default;
-      const tpl = await FormTemplate.findOne({ countrySlug: country || "dubai" }).lean();
+      const Country = (await import("../models/Country.js")).default;
+
+      if (!countrySlug) return null;
+      const countryRecord = await Country.findOne({ slug: countrySlug }).lean();
+      if (countryRecord && countryRecord.formTemplate) {
+        return await FormTemplate.findById(countryRecord.formTemplate).lean();
+      }
+      if (countryRecord && countryRecord.region === "schengen") {
+        return await FormTemplate.findOne({ countrySlug: "schengen" }).lean();
+      }
+      return await FormTemplate.findOne({ countrySlug: countrySlug }).lean();
+    };
+
+    try {
+      const tpl = await resolveTemplateForCountry(country || "dubai");
       if (tpl && Array.isArray(tpl.fields)) {
         const requiredKeys = tpl.fields.filter((f) => f.required).map((f) => f.key).filter(Boolean);
         const missing = [];
@@ -1258,9 +1272,20 @@ export const uploadDocuments = async (req, res) => {
     // Validate requiredDocs based on the application's country template
     try {
       const FormTemplate = (await import("../models/FormTemplate.js")).default;
+      const Country = (await import("../models/Country.js")).default;
       const application = await Application.findById(applicationId).lean();
       if (application) {
-        const tpl = await FormTemplate.findOne({ countrySlug: application.country || "dubai" }).lean();
+        // Resolve template using country record mapping (supports Schengen members)
+        let tpl = null;
+        const countryRecord = await Country.findOne({ slug: application.country }).lean();
+        if (countryRecord && countryRecord.formTemplate) {
+          tpl = await FormTemplate.findById(countryRecord.formTemplate).lean();
+        } else if (countryRecord && countryRecord.region === "schengen") {
+          tpl = await FormTemplate.findOne({ countrySlug: "schengen" }).lean();
+        } else {
+          tpl = await FormTemplate.findOne({ countrySlug: application.country || "dubai" }).lean();
+        }
+
         if (tpl && Array.isArray(tpl.requiredDocs) && tpl.requiredDocs.length > 0) {
           const missingDocs = tpl.requiredDocs.filter((doc) => !(doc in filesByField));
           if (missingDocs.length > 0) {

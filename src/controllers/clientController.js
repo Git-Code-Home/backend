@@ -15,10 +15,31 @@ export const createClientApplication = async (req, res) => {
 
     if (!visaType) return res.status(400).json({ message: "visaType is required" });
 
-    // Server-side validation: if a template exists for the country, ensure required fields are present
-    try {
+    // Server-side validation: resolve appropriate template for this country (supports Schengen-member mapping)
+    const resolveTemplateForCountry = async (countrySlug) => {
       const FormTemplate = (await import("../models/FormTemplate.js")).default;
-      const tpl = await FormTemplate.findOne({ countrySlug: country || "dubai" }).lean();
+      const Country = (await import("../models/Country.js")).default;
+
+      if (!countrySlug) return null;
+
+      // Try to find country record to check for a linked template or a region mapping
+      const countryRecord = await Country.findOne({ slug: countrySlug }).lean();
+      if (countryRecord && countryRecord.formTemplate) {
+        // Direct reference to a template
+        return await FormTemplate.findById(countryRecord.formTemplate).lean();
+      }
+
+      // If this country belongs to a special region (e.g. schengen), use the main region template
+      if (countryRecord && countryRecord.region === "schengen") {
+        return await FormTemplate.findOne({ countrySlug: "schengen" }).lean();
+      }
+
+      // Fallback: try to find a template matching the slug
+      return await FormTemplate.findOne({ countrySlug: countrySlug }).lean();
+    };
+
+    try {
+      const tpl = await resolveTemplateForCountry(country || "dubai");
       if (tpl && Array.isArray(tpl.fields)) {
         const requiredKeys = tpl.fields.filter((f) => f.required).map((f) => f.key).filter(Boolean);
         const missing = [];
@@ -41,6 +62,8 @@ export const createClientApplication = async (req, res) => {
       visaType,
       visaDuration,
       // default to dubai when country not provided
+      // When Schengen member is provided, we store the selected member slug so uploads reference the member country,
+      // but template validation will map to the shared Schengen template via the Country.formTemplate or region.
       country: country || "dubai",
       formData: formData || {},
       processedBy: null,
@@ -114,7 +137,19 @@ export const uploadClientDocuments = async (req, res) => {
     // Validate requiredDocs from the template associated with this application's country
     try {
       const FormTemplate = (await import("../models/FormTemplate.js")).default;
-      const tpl = await FormTemplate.findOne({ countrySlug: application.country || "dubai" }).lean();
+      const Country = (await import("../models/Country.js")).default;
+
+      // Determine the template to use for the application's country
+      let tpl = null;
+      const countryRecord = await Country.findOne({ slug: application.country }).lean();
+      if (countryRecord && countryRecord.formTemplate) {
+        tpl = await FormTemplate.findById(countryRecord.formTemplate).lean();
+      } else if (countryRecord && countryRecord.region === "schengen") {
+        tpl = await FormTemplate.findOne({ countrySlug: "schengen" }).lean();
+      } else {
+        tpl = await FormTemplate.findOne({ countrySlug: application.country || "dubai" }).lean();
+      }
+
       if (tpl && Array.isArray(tpl.requiredDocs) && tpl.requiredDocs.length > 0) {
         const missingDocs = tpl.requiredDocs.filter((doc) => !(doc in filesByField));
         if (missingDocs.length > 0) {
