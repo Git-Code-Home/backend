@@ -21,6 +21,7 @@ const seed = async () => {
     { name: "Canada", slug: "canada", region: "america", active: true },
     { name: "United Kingdom", slug: "uk", region: "uk", active: true },
     { name: "United States", slug: "usa", region: "america", active: true },
+    { name: "Australia", slug: "australia", region: "australia", active: true },
   ];
 
   for (const c of countries) {
@@ -47,15 +48,81 @@ const seed = async () => {
     fields: [
       { key: "fullName", label: "Full Name", type: "text", required: true },
       { key: "passportNumber", label: "Passport Number", type: "text", required: true },
-      { key: "purpose", label: "Purpose of travel", type: "select", required: true, options: ["tourism", "business", "study"] },
+      { key: "purpose", label: "Purpose of travel", type: "select", required: true, options: ["tourism", "business", "study", "family"] },
+      { key: "email", label: "Email", type: "text", required: false },
+      { key: "phone", label: "Phone", type: "text", required: false },
     ],
     requiredDocs: ["passport", "idCard", "bankStatement"],
     formPdfUrl: "",
   };
 
-  await FormTemplate.updateOne({ countrySlug: dubaiTemplate.countrySlug }, { $set: dubaiTemplate }, { upsert: true });
-  await FormTemplate.updateOne({ countrySlug: canadaTemplate.countrySlug }, { $set: canadaTemplate }, { upsert: true });
-  console.log("Form templates seeded/updated");
+  const schengenTemplate = {
+    countrySlug: "schengen",
+    title: "Schengen - Short Stay (Type C)",
+    fields: [
+      { key: "fullName", label: "Full Name", type: "text", required: true },
+      { key: "dob", label: "Date of Birth", type: "date", required: true },
+      { key: "passportNumber", label: "Passport Number", type: "text", required: true },
+      { key: "passportExpiry", label: "Passport Expiry", type: "date", required: true },
+      { key: "nationality", label: "Nationality", type: "text", required: true },
+      { key: "travelPurpose", label: "Purpose of Travel", type: "select", required: true, options: ["tourism", "business", "visiting family/friends"] },
+      { key: "intendedEntryDate", label: "Intended Entry Date", type: "date", required: false },
+      { key: "durationDays", label: "Duration (days)", type: "number", required: false },
+      { key: "accommodationAddress", label: "Accommodation Address", type: "text", required: false },
+    ],
+    requiredDocs: ["passport", "photo", "travelItinerary", "travelInsurance", "bankStatement"],
+    formPdfUrl: "",
+  };
+
+  const ukTemplate = {
+    countrySlug: "uk",
+    title: "United Kingdom - Standard Visitor",
+    fields: [
+      { key: "fullName", label: "Full Name", type: "text", required: true },
+      { key: "dob", label: "Date of Birth", type: "date", required: true },
+      { key: "passportNumber", label: "Passport Number", type: "text", required: true },
+      { key: "nationality", label: "Nationality", type: "text", required: true },
+      { key: "purpose", label: "Purpose of Visit", type: "select", required: true, options: ["tourism", "business", "study", "family"] },
+      { key: "stayAddress", label: "Address in UK", type: "text", required: false },
+    ],
+    requiredDocs: ["passport", "photo", "bankStatement", "accommodationProof"],
+    formPdfUrl: "",
+  };
+
+  const usaTemplate = {
+    countrySlug: "usa",
+    title: "United States - Visitor (B1/B2)",
+    fields: [
+      { key: "fullName", label: "Full Name", type: "text", required: true },
+      { key: "dob", label: "Date of Birth", type: "date", required: true },
+      { key: "passportNumber", label: "Passport Number", type: "text", required: true },
+      { key: "nationality", label: "Nationality", type: "text", required: true },
+      { key: "visaCategory", label: "Visa Category", type: "select", required: true, options: ["B1 (Business)", "B2 (Tourism)"] },
+      { key: "purposeDetails", label: "Purpose Details", type: "text", required: false },
+    ],
+    requiredDocs: ["passport", "photo", "bankStatement", "appointmentReceipt"],
+    formPdfUrl: "",
+  };
+
+  const australiaTemplate = {
+    countrySlug: "australia",
+    title: "Australia - Visitor Visa",
+    fields: [
+      { key: "fullName", label: "Full Name", type: "text", required: true },
+      { key: "dob", label: "Date of Birth", type: "date", required: true },
+      { key: "passportNumber", label: "Passport Number", type: "text", required: true },
+      { key: "visaType", label: "Visa Type", type: "select", required: true, options: ["Visitor", "eVisitor", "ETA"] },
+      { key: "intendedStay", label: "Intended Stay (days)", type: "number", required: false },
+    ],
+    requiredDocs: ["passport", "photo", "bankStatement", "healthInsurance"],
+    formPdfUrl: "",
+  };
+
+  const templates = [dubaiTemplate, canadaTemplate, schengenTemplate, ukTemplate, usaTemplate, australiaTemplate];
+  for (const t of templates) {
+    await FormTemplate.updateOne({ countrySlug: t.countrySlug }, { $set: t }, { upsert: true });
+  }
+  console.log("Form templates seeded/updated")
 
   process.exit(0);
 };
