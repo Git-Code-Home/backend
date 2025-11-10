@@ -118,18 +118,9 @@ router.post("/clients", protect, employeeOnly, registerClient);
 // create new application
 router.post("/applications", protect, employeeOnly, createApplication);
 
-// upload docs (updated to accept all required fields)
-router.post('/applications/:id/upload', 
-  upload.fields([
-    { name: 'passport', maxCount: 1 },
-    { name: 'passportFirstPage', maxCount: 1 },
-    { name: 'passportCoverPage', maxCount: 1 },
-    { name: 'birthCertificate', maxCount: 1 },
-    { name: 'bForm', maxCount: 1 },
-    { name: 'paymentReceipt', maxCount: 1 },
-    { name: 'photo', maxCount: 1 },
-    { name: 'idCard', maxCount: 1 }
-  ]), 
+// upload docs (accept dynamic field names from templates)
+router.post('/applications/:id/upload',
+  upload.any(),
   uploadDocuments
 );
 

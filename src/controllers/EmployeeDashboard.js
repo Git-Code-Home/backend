@@ -1214,12 +1214,40 @@ export const uploadDocuments = async (req, res) => {
   try {
     const applicationId = req.params.id;
 
-    if (!req.files || Object.keys(req.files).length === 0) {
+    if (!req.files || (Array.isArray(req.files) && req.files.length === 0) || (typeof req.files === 'object' && !Array.isArray(req.files) && Object.keys(req.files).length === 0)) {
       return res.status(400).json({ message: "No files uploaded" });
     }
 
-    const uploadPromises = Object.keys(req.files).map(async (fieldname) => {
-      const file = req.files[fieldname][0];
+    // Normalize files into a map: fieldName -> [file,...]
+    let filesByField = {};
+    if (Array.isArray(req.files)) {
+      req.files.forEach((f) => {
+        filesByField[f.fieldname] = filesByField[f.fieldname] || [];
+        filesByField[f.fieldname].push(f);
+      });
+    } else {
+      filesByField = req.files; // already a map of arrays
+    }
+
+    // Validate requiredDocs based on the application's country template
+    try {
+      const FormTemplate = (await import("../models/FormTemplate.js")).default;
+      const application = await Application.findById(applicationId).lean();
+      if (application) {
+        const tpl = await FormTemplate.findOne({ countrySlug: application.country || "dubai" }).lean();
+        if (tpl && Array.isArray(tpl.requiredDocs) && tpl.requiredDocs.length > 0) {
+          const missingDocs = tpl.requiredDocs.filter((doc) => !(doc in filesByField));
+          if (missingDocs.length > 0) {
+            return res.status(400).json({ message: "Missing required documents", missing: missingDocs });
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Required docs validation skipped (could not load template):", err && err.message ? err.message : err);
+    }
+
+    const uploadPromises = Object.keys(filesByField).map(async (fieldname) => {
+      const file = filesByField[fieldname][0];
       const b64 = Buffer.from(file.buffer).toString("base64");
       const dataURI = `data:${file.mimetype};base64,${b64}`;
 

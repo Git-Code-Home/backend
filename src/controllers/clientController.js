@@ -15,6 +15,27 @@ export const createClientApplication = async (req, res) => {
 
     if (!visaType) return res.status(400).json({ message: "visaType is required" });
 
+    // Server-side validation: if a template exists for the country, ensure required fields are present
+    try {
+      const FormTemplate = (await import("../models/FormTemplate.js")).default;
+      const tpl = await FormTemplate.findOne({ countrySlug: country || "dubai" }).lean();
+      if (tpl && Array.isArray(tpl.fields)) {
+        const requiredKeys = tpl.fields.filter((f) => f.required).map((f) => f.key).filter(Boolean);
+        const missing = [];
+        for (const k of requiredKeys) {
+          const val = formData ? formData[k] : undefined;
+          if (val === undefined || val === null || (typeof val === "string" && String(val).trim() === "")) {
+            missing.push(k);
+          }
+        }
+        if (missing.length > 0) {
+          return res.status(400).json({ message: "Missing required form fields", missing });
+        }
+      }
+    } catch (err) {
+      console.warn("Template validation skipped (could not load template):", err && err.message ? err.message : err);
+    }
+
     const application = await Application.create({
       client: client._id,
       visaType,
@@ -75,7 +96,7 @@ export const uploadClientDocuments = async (req, res) => {
     }
 
     // multer.any() produces req.files as an array; upload.fields(...) produces an object
-    if (!req.files || (Array.isArray(req.files) && req.files.length === 0) || (typeof req.files === 'object' && !Array.isArray(req.files) && Object.keys(req.files).length === 0)) {
+    if (!req.files || (Array.isArray(req.files) && req.files.length === 0) || (typeof req.files === "object" && !Array.isArray(req.files) && Object.keys(req.files).length === 0)) {
       return res.status(400).json({ message: "No files uploaded" });
     }
 
@@ -88,6 +109,20 @@ export const uploadClientDocuments = async (req, res) => {
       });
     } else {
       filesByField = req.files; // already a map of arrays
+    }
+
+    // Validate requiredDocs from the template associated with this application's country
+    try {
+      const FormTemplate = (await import("../models/FormTemplate.js")).default;
+      const tpl = await FormTemplate.findOne({ countrySlug: application.country || "dubai" }).lean();
+      if (tpl && Array.isArray(tpl.requiredDocs) && tpl.requiredDocs.length > 0) {
+        const missingDocs = tpl.requiredDocs.filter((doc) => !(doc in filesByField));
+        if (missingDocs.length > 0) {
+          return res.status(400).json({ message: "Missing required documents", missing: missingDocs });
+        }
+      }
+    } catch (err) {
+      console.warn("Required docs validation skipped (could not load template):", err && err.message ? err.message : err);
     }
 
     const uploadPromises = Object.keys(filesByField).map(async (fieldname) => {
