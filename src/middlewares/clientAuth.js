@@ -11,7 +11,8 @@ export const protectClient = async (req, res, next) => {
     if (token === "demo-client-token") {
       console.log("[Auth] Using demo client token (development only)");
       // Attach a minimal demo client object and skip JWT verification
-      req.client = { _id: "demo-client-id", name: "Demo Client" };
+      // Use a valid 24-character hex string so Mongoose can cast to ObjectId
+      req.client = { _id: "000000000000000000000000", name: "Demo Client" };
       return next();
     }
 

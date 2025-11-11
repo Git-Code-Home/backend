@@ -9,9 +9,10 @@ const applicationSchema = new mongoose.Schema({
   processedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
-    required: function () {
-      return this.agent == null;
-    },
+    // processedBy is optional. For client-submitted applications there may be
+    // no processing user yet, so make this field optional to avoid server-side
+    // validation failures when creating applications from the client portal.
+    required: false,
   },
   agent: {
     type: mongoose.Schema.Types.ObjectId,
