@@ -9,7 +9,8 @@ import { loginClient } from "../controllers/clientController.js";
 const router = express.Router();
 
 // Client creates application (protected)
-router.post("/applications", protectClient, clientController.createClientApplication);
+// Accept multipart/form-data so clients can submit files at creation time (passport/photo/ID/template filled PDF etc.)
+router.post("/applications", protectClient, upload.any(), clientController.createClientApplication);
 
 // Client lists own applications
 router.get("/applications", protectClient, clientController.listClientApplications);

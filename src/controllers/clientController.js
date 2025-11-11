@@ -11,33 +11,28 @@ export const createClientApplication = async (req, res) => {
     const client = req.client;
     if (!client) return res.status(401).json({ message: "Not authenticated" });
 
+    // Support both JSON body + multipart/form-data (files)
     const { visaType, visaDuration, country, formData } = req.body || {};
 
     if (!visaType) return res.status(400).json({ message: "visaType is required" });
 
-    // Server-side validation: resolve appropriate template for this country (supports Schengen-member mapping)
+    // Helper to resolve template for country (supports Schengen mapping)
     const resolveTemplateForCountry = async (countrySlug) => {
       const FormTemplate = (await import("../models/FormTemplate.js")).default;
       const Country = (await import("../models/Country.js")).default;
 
       if (!countrySlug) return null;
-
-      // Try to find country record to check for a linked template or a region mapping
       const countryRecord = await Country.findOne({ slug: countrySlug }).lean();
       if (countryRecord && countryRecord.formTemplate) {
-        // Direct reference to a template
         return await FormTemplate.findById(countryRecord.formTemplate).lean();
       }
-
-      // If this country belongs to a special region (e.g. schengen), use the main region template
       if (countryRecord && countryRecord.region === "schengen") {
         return await FormTemplate.findOne({ countrySlug: "schengen" }).lean();
       }
-
-      // Fallback: try to find a template matching the slug
       return await FormTemplate.findOne({ countrySlug: countrySlug }).lean();
     };
 
+    // Validate template fields (if present)
     try {
       const tpl = await resolveTemplateForCountry(country || "dubai");
       if (tpl && Array.isArray(tpl.fields)) {
@@ -57,21 +52,83 @@ export const createClientApplication = async (req, res) => {
       console.warn("Template validation skipped (could not load template):", err && err.message ? err.message : err);
     }
 
+    // Handle file uploads if present (req.files may be provided by multer.any())
+    let documents = {};
+    try {
+      if (req.files && (Array.isArray(req.files) ? req.files.length > 0 : Object.keys(req.files).length > 0)) {
+        // Normalize files into a map: fieldName -> [file,...]
+        let filesByField = {};
+        if (Array.isArray(req.files)) {
+          req.files.forEach((f) => {
+            filesByField[f.fieldname] = filesByField[f.fieldname] || [];
+            filesByField[f.fieldname].push(f);
+          });
+        } else {
+          filesByField = req.files;
+        }
+
+        // Validate requiredDocs from the template, if available
+        try {
+          const FormTemplate = (await import("../models/FormTemplate.js")).default;
+          const Country = (await import("../models/Country.js")).default;
+
+          const tpl = await (async () => {
+            const countryRecord = await Country.findOne({ slug: country || "dubai" }).lean();
+            if (countryRecord && countryRecord.formTemplate) return await FormTemplate.findById(countryRecord.formTemplate).lean();
+            if (countryRecord && countryRecord.region === "schengen") return await FormTemplate.findOne({ countrySlug: "schengen" }).lean();
+            return await FormTemplate.findOne({ countrySlug: country || "dubai" }).lean();
+          })();
+
+          if (tpl && Array.isArray(tpl.requiredDocs) && tpl.requiredDocs.length > 0) {
+            const missingDocs = tpl.requiredDocs.filter((doc) => !(doc in filesByField));
+            if (missingDocs.length > 0) {
+              return res.status(400).json({ message: "Missing required documents", missing: missingDocs });
+            }
+          }
+        } catch (err) {
+          console.warn("Required docs validation skipped (could not load template):", err && err.message ? err.message : err);
+        }
+
+        // Upload files to Cloudinary
+        const uploadPromises = Object.keys(filesByField).map(async (fieldname) => {
+          const file = filesByField[fieldname][0];
+          if (!file) return null;
+          if (file.buffer) {
+            const b64 = Buffer.from(file.buffer).toString("base64");
+            const dataURI = `data:${file.mimetype};base64,${b64}`;
+            const result = await cloudinary.uploader.upload(dataURI, { folder: "visa_docs", resource_type: "auto" });
+            return { field: fieldname, url: result.secure_url };
+          }
+          if (file.path || file.location) {
+            const url = file.path || file.location;
+            return { field: fieldname, url };
+          }
+          return null;
+        });
+
+        const uploadedDocs = await Promise.all(uploadPromises);
+        uploadedDocs.forEach((d) => {
+          if (d && d.field) documents[d.field] = d.url;
+        });
+      }
+    } catch (err) {
+      console.error("File processing error in createClientApplication:", err && err.message ? err.message : err);
+      return res.status(500).json({ message: "Failed to process uploaded files" });
+    }
+
     const application = await Application.create({
       client: client._id,
       visaType,
       visaDuration,
-      // default to dubai when country not provided
-      // When Schengen member is provided, we store the selected member slug so uploads reference the member country,
-      // but template validation will map to the shared Schengen template via the Country.formTemplate or region.
       country: country || "dubai",
       formData: formData || {},
+      documents: documents,
       processedBy: null,
       status: "submitted",
       paymentStatus: "unpaid",
     });
 
-    res.status(201).json(application);
+    return res.status(201).json({ success: true, application });
   } catch (err) {
     console.error("createClientApplication error:", err);
     res.status(500).json({ message: err.message });
