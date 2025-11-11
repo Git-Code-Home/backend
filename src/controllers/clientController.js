@@ -124,7 +124,8 @@ export const createClientApplication = async (req, res) => {
       formData: formData || {},
       documents: documents,
       processedBy: null,
-      status: "submitted",
+      // Ensure client-submitted apps appear as pending for admin
+      applicationStatus: "pending",
       paymentStatus: "unpaid",
     });
 

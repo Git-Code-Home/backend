@@ -1505,8 +1505,10 @@ export const getAllApplications = async (req, res) => {
     if (status) filter.applicationStatus = status;
 
     const applications = await Application.find(filter)
-      .populate("client")
-      .populate("processedBy", "name email")
+      .populate({ path: "client", select: "name email phone" })
+      .populate({ path: "processedBy", select: "name email" })
+      .populate({ path: "agent", select: "name email" })
+      .populate({ path: "updatedBy", select: "name email" })
       .lean();
     res.status(200).json(applications);
   } catch (error) {
