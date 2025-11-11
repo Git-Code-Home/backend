@@ -128,8 +128,8 @@ export const createClientApplication = async (req, res) => {
       applicationStatus: "pending",
       paymentStatus: "unpaid",
     });
-
-    return res.status(201).json({ success: true, application });
+    // Return the application object directly so frontend can read created._id
+    return res.status(201).json(application);
   } catch (err) {
     console.error("createClientApplication error:", err);
     res.status(500).json({ message: err.message });
