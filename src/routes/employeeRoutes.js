@@ -101,7 +101,6 @@ import {
   registerClient,
   createApplication,
   uploadDocuments,
-  uploadSingleDocument,
   getMyClients,
   getMyApplications,
   assignClientToAgent,
@@ -126,12 +125,7 @@ router.post('/applications/:id/upload',
 );
 
 // upload a single document without doing full required-docs validation
-router.post('/applications/:id/upload-document',
-  protect,
-  employeeOnly,
-  upload.single('file'),
-  uploadSingleDocument
-);
+// single-document upload route removed; multi-file upload endpoint remains at /applications/:id/upload
 
 // list my clients
 router.get("/my-clients", protect, employeeOnly, getMyClients);
