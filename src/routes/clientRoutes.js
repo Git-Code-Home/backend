@@ -1,5 +1,5 @@
 import express from "express";
-import clientController, { /* loginClient */ } from "../controllers/clientController.js";
+import clientController, { uploadClientSingleDocument } from "../controllers/clientController.js";
 import { protectClient } from "../middlewares/clientAuth.js";
 import { upload } from "../controllers/EmployeeDashboard.js";
 
@@ -25,6 +25,13 @@ router.post(
   // We still limit to memory storage which the EmployeeDashboard upload helper uses.
   upload.any(),
   clientController.uploadClientDocuments
+);
+
+// single document upload for clients (no full required-docs validation)
+router.post('/applications/:id/upload-document',
+  protectClient,
+  upload.single('file'),
+  uploadClientSingleDocument
 );
 
 export default router;

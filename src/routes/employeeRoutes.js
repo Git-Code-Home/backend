@@ -101,6 +101,7 @@ import {
   registerClient,
   createApplication,
   uploadDocuments,
+  uploadSingleDocument,
   getMyClients,
   getMyApplications,
   assignClientToAgent,
@@ -122,6 +123,14 @@ router.post("/applications", protect, employeeOnly, createApplication);
 router.post('/applications/:id/upload',
   upload.any(),
   uploadDocuments
+);
+
+// upload a single document without doing full required-docs validation
+router.post('/applications/:id/upload-document',
+  protect,
+  employeeOnly,
+  upload.single('file'),
+  uploadSingleDocument
 );
 
 // list my clients
