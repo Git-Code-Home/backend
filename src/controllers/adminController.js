@@ -101,7 +101,7 @@ export const getClients = async (req, res) => {
     }
 
     // Aggregation to include totalApplications and basic assignedTo/assignedAgent info
-    const clients = await Client.aggregate([
+    const clientsAgg = await Client.aggregate([
       { $match: match },
       {
         $lookup: {
@@ -134,6 +134,8 @@ export const getClients = async (req, res) => {
           totalApplications: { $size: { $ifNull: ["$applications", []] } },
         },
       },
+      // Keep only clients that have at least one application so admin sees only active clients
+      { $match: { totalApplications: { $gt: 0 } } },
       {
         $project: {
           password: 0,
@@ -145,7 +147,14 @@ export const getClients = async (req, res) => {
       },
     ]);
 
-    return res.status(200).json(clients || []);
+    // Fetch applications for the returned clients so the frontend receives both lists
+    const clientIds = clientsAgg.map((c) => c._id);
+    const applications = await Application.find({ client: { $in: clientIds } })
+      .populate("client")
+      .populate("processedBy", "name email")
+      .lean();
+
+    return res.status(200).json({ clients: clientsAgg || [], applications: applications || [] });
   } catch (error) {
     console.error("getClients error:", error);
     return res.status(500).json({ message: error.message });
