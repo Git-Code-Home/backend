@@ -1,5 +1,6 @@
 import Client from "../models/Client.js";
 import Application from "../models/Application.js";
+import User from "../models/User.js";
 import cloudinary from "../config/cloudinary.js";
 import jwt from "jsonwebtoken";
 
@@ -10,6 +11,45 @@ export const createClientApplication = async (req, res) => {
   try {
     const client = req.client;
     if (!client) return res.status(401).json({ message: "Not authenticated" });
+
+    // If client was provided via the demo token (middleware attaches a stub _id),
+    // ensure there is a real Client document for admin to see and link the application to.
+    let clientId = client._id;
+    try {
+      if (String(clientId) === "000000000000000000000000") {
+        // Look for an existing demo client by email first
+        let demoClient = await Client.findOne({ email: "demo@client.com" });
+        if (!demoClient) {
+          // Find an employee or admin to assign this demo client to. If none exist, create an admin user.
+          let assignUser = await User.findOne({ role: "employee" });
+          if (!assignUser) assignUser = await User.findOne({ role: "admin" });
+          if (!assignUser) {
+            const fallbackAdmin = new User({
+              name: process.env.ADMIN_NAME || "System Admin",
+              email: process.env.ADMIN_EMAIL || "admin@local",
+              password: process.env.ADMIN_PASSWORD || "password",
+              role: "admin",
+            });
+            await fallbackAdmin.save();
+            assignUser = fallbackAdmin;
+          }
+
+          // Create the demo client with required fields (password + assignedTo)
+          demoClient = new Client({
+            name: "Demo Client",
+            email: "demo@client.com",
+            phone: "0000000000",
+            password: process.env.DEMO_CLIENT_PASSWORD || "demo-password",
+            assignedTo: assignUser._id,
+          });
+          await demoClient.save();
+        }
+        clientId = demoClient._id;
+      }
+    } catch (err) {
+      console.warn("Failed to ensure demo client exists:", err && err.message ? err.message : err);
+      // proceed using the stub id if anything goes wrong; admin views may still not show it
+    }
 
     // Support both JSON body + multipart/form-data (files)
     const { visaType, visaDuration, country, formData } = req.body || {};
@@ -117,7 +157,7 @@ export const createClientApplication = async (req, res) => {
     }
 
     const application = await Application.create({
-      client: client._id,
+      client: clientId,
       visaType,
       visaDuration,
       country: country || "dubai",
