@@ -287,9 +287,17 @@ export const uploadClientDocuments = async (req, res) => {
       }
 
       if (tpl && Array.isArray(tpl.requiredDocs) && tpl.requiredDocs.length > 0) {
-        const missingDocs = tpl.requiredDocs.filter((doc) => !(doc in filesByField));
-        if (missingDocs.length > 0) {
-          return res.status(400).json({ message: "Missing required documents", missing: missingDocs });
+        // Allow uploading a single payment receipt without requiring the
+        // rest of the template's documents. This enables employees/clients
+        // to upload receipts separately from other application documents.
+        const uploadedFields = Object.keys(filesByField || {});
+        const isOnlyPaymentReceipt = uploadedFields.length === 1 && uploadedFields[0] === "paymentReceipt";
+
+        if (!isOnlyPaymentReceipt) {
+          const missingDocs = tpl.requiredDocs.filter((doc) => !(doc in filesByField));
+          if (missingDocs.length > 0) {
+            return res.status(400).json({ message: "Missing required documents", missing: missingDocs });
+          }
         }
       }
     } catch (err) {
