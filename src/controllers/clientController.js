@@ -239,6 +239,42 @@ export const listClientApplications = async (req, res) => {
   }
 };
 
+// Get a single application for authenticated client
+export const getClientApplication = async (req, res) => {
+  try {
+    const client = req.client;
+    if (!client) return res.status(401).json({ message: "Not authenticated" });
+
+    const applicationId = req.params.id;
+    if (!applicationId) return res.status(400).json({ message: "Application id required" });
+
+    const application = await Application.findById(applicationId).lean();
+    if (!application) return res.status(404).json({ message: "Application not found" });
+
+    // Ensure ownership
+    if (String(application.client) !== String(client._id)) {
+      return res.status(403).json({ message: "You do not own this application" });
+    }
+
+    const mapped = {
+      _id: application._id,
+      visaType: application.visaType,
+      applicationStatus: application.applicationStatus || application.status,
+      submitDate: application.createdAt,
+      issueDate: application.issueDate,
+      expiryDate: application.expiryDate,
+      documents: application.documents || {},
+      country: application.country,
+      formData: application.formData || {},
+    };
+
+    return res.json(mapped);
+  } catch (err) {
+    console.error("getClientApplication error:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // Upload documents for client application
 export const uploadClientDocuments = async (req, res) => {
   try {
@@ -353,4 +389,4 @@ export const uploadClientDocuments = async (req, res) => {
 // ------------------ UPLOAD A SINGLE DOCUMENT FOR CLIENT (no full-template validation)
 // @route   POST /api/client/applications/:id/upload-document
 // @access  Private (Client)
-export default { createClientApplication, uploadClientDocuments, listClientApplications };
+export default { createClientApplication, uploadClientDocuments, listClientApplications, getClientApplication };

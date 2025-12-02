@@ -15,6 +15,9 @@ router.post("/applications", protectClient, upload.any(), clientController.creat
 // Client lists own applications
 router.get("/applications", protectClient, clientController.listClientApplications);
 
+// Client gets a single application by id
+router.get("/applications/:id", protectClient, clientController.getClientApplication);
+
 // Public client login to obtain JWT
 router.post("/login", loginClient);
 
