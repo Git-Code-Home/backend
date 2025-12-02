@@ -106,12 +106,31 @@ export const createOrUpdateApplication = async (req, res) => {
       passport: req.files?.passport ? req.files.passport[0].path : undefined,
       photo: req.files?.photo ? req.files.photo[0].path : undefined,
       idCard: req.files?.idCard ? req.files.idCard[0].path : undefined,
+      approvedVisa: req.files?.approvedVisa ? req.files.approvedVisa[0].path : undefined,
+    }
+
+    // Basic validation for approved visa file type/size (if uploaded)
+    if (req.files?.approvedVisa && req.files.approvedVisa[0]) {
+      const file = req.files.approvedVisa[0]
+      const allowed = ["application/pdf", "image/png", "image/jpeg", "image/jpg"]
+      if (file.mimetype && !allowed.includes(file.mimetype)) {
+        return res.status(400).json({ message: "Approved visa must be PDF or image" })
+      }
+      // If size available, enforce max 10MB
+      if (file.size && file.size > 10 * 1024 * 1024) {
+        return res.status(400).json({ message: "Approved visa exceeds 10MB size limit" })
+      }
     }
 
     let application = await Application.findOne({ client: clientId, agent: req.user._id })
 
     if (application) {
       Object.assign(application, { visaType, documents, status, issueDate, expiryDate, commissionAmount })
+      // If an approved visa was uploaded by the agent, update tracking fields
+      if (documents.approvedVisa) {
+        application.applicationStatus = "document_uploaded"
+        application.approvedVisaUploadedAt = new Date()
+      }
       await application.save()
     } else {
       application = await Application.create({
@@ -124,6 +143,11 @@ export const createOrUpdateApplication = async (req, res) => {
         expiryDate,
         commissionAmount,
       })
+      if (documents.approvedVisa) {
+        application.applicationStatus = "document_uploaded"
+        application.approvedVisaUploadedAt = new Date()
+        await application.save()
+      }
     }
 
     res.json({

@@ -25,7 +25,7 @@ const applicationSchema = new mongoose.Schema({
   },
   applicationStatus: {
     type: String,
-    enum: ["pending", "under_review", "processing", "submitted", "documents-required", "approved", "rejected"],
+    enum: ["pending", "under_review", "processing", "submitted", "documents-required", "document_uploaded", "approved", "rejected"],
     default: "pending",
     index: true,
   },
@@ -43,6 +43,8 @@ const applicationSchema = new mongoose.Schema({
     passportFirstPage: { type: String },
     passportCoverPage: { type: String },
     paymentReceipt: { type: String },
+    // Approved visa document uploaded by the agent (PDF/JPG/PNG)
+    approvedVisa: { type: String },
   },
   visaDuration: {
     type: String,
@@ -61,6 +63,8 @@ const applicationSchema = new mongoose.Schema({
   },
   issueDate: { type: Date },
   expiryDate: { type: Date },
+  // When an agent uploads the approved visa document
+  approvedVisaUploadedAt: { type: Date, default: null },
   commissionAmount: { type: Number, default: 0 },
   commissionStatus: {
     type: String,
