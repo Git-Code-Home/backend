@@ -7,7 +7,6 @@ import {
   getAgentApplications,
   createOrUpdateApplication,
   getCommissionSummary,
-  withdrawCommission,
   getAgentNotifications,
   getAgentApplicationById,
   approveApplication,
@@ -39,7 +38,6 @@ router.post(
 )
 
 router.get("/commission", protect, agentOnly, getCommissionSummary)
-router.post("/withdraw", protect, agentOnly, withdrawCommission)
 router.get("/notifications", protect, agentOnly, getAgentNotifications)
 
 // Agent actions: approve/reject an application (ownership validated in controller)

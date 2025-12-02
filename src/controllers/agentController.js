@@ -174,22 +174,6 @@ export const getCommissionSummary = async (req, res) => {
   }
 };
 
-// ✅ Withdraw Request
-export const withdrawCommission = async (req, res) => {
-  try {
-    const agent = await User.findById(req.user._id);
-    if (agent.pendingCommission <= 0) return res.status(400).json({ message: "No pending commission" });
-
-    // In real app: add payout logic
-    agent.paidCommission += agent.pendingCommission;
-    agent.pendingCommission = 0;
-    await agent.save();
-
-    res.json({ message: "Withdraw successful" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
 
 // ✅ Get Notifications
 export const getAgentNotifications = async (req, res) => {
