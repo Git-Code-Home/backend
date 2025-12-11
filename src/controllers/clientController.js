@@ -1,5 +1,7 @@
 import Client from "../models/Client.js";
 import Application from "../models/Application.js";
+import ApplicationDetail from "../models/ApplicationDetail.js";
+import ApplicationDocument from "../models/ApplicationDocument.js";
 import User from "../models/User.js";
 import cloudinary from "../config/cloudinary.js";
 import jwt from "jsonwebtoken";
@@ -176,6 +178,30 @@ export const createClientApplication = async (req, res) => {
       applicationStatus: "pending",
       paymentStatus: "unpaid",
     });
+    // Create ApplicationDetail records for each form field (if provided)
+    try {
+      if (formData && typeof formData === "object") {
+        const keys = Object.keys(formData || {});
+        const details = keys.map((k) => ({ applicationId: application._id, fieldName: k, fieldValue: formData[k] }));
+        if (details.length > 0) await ApplicationDetail.insertMany(details);
+      }
+    } catch (e) {
+      console.warn("Failed to write application details:", e && e.message ? e.message : e);
+    }
+
+    // Create ApplicationDocument records for uploaded documents
+    try {
+      const docEntries = Object.keys(documents || {}).map((field) => ({
+        applicationId: application._id,
+        fileName: documents[field].split("/").pop() || field,
+        filePath: documents[field],
+        fieldName: field,
+      }));
+      if (docEntries.length > 0) await ApplicationDocument.insertMany(docEntries);
+    } catch (e) {
+      console.warn("Failed to write application documents:", e && e.message ? e.message : e);
+    }
+
     // Return the application object directly so frontend can read created._id
     return res.status(201).json(application);
   } catch (err) {
@@ -379,6 +405,16 @@ export const uploadClientDocuments = async (req, res) => {
     }
 
     const updated = await Application.findByIdAndUpdate(applicationId, { $set: updateData }, { new: true });
+      // Save document records
+      try {
+        const toInsert = (uploadedDocs || [])
+          .filter(Boolean)
+          .map((d) => ({ applicationId: updated._id, fileName: (d.url || "").split("/").pop() || d.field, filePath: d.url, fieldName: d.field }));
+        if (toInsert.length > 0) await ApplicationDocument.insertMany(toInsert);
+      } catch (e) {
+        console.warn("Failed to persist application documents:", e && e.message ? e.message : e);
+      }
+
     return res.json({ message: "Documents uploaded successfully", documents: updated.documents });
   } catch (err) {
     console.error("uploadClientDocuments error:", err);

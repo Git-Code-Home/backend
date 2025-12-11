@@ -193,6 +193,8 @@ import {
   getClientApplications, 
   updateApplicationStatus,
   getAllApplications,
+  getApplicationById,
+  downloadApplicationDocument,
   reassignClient,
   getReportsSummary
 } from "../controllers/EmployeeDashboard.js";
@@ -225,6 +227,10 @@ router.put("/clients/:clientId/reassign", protect, adminOnly, reassignClient);
 
 // Route for fetching all applications (for admin applications page) - MUST come before specific routes
 router.get("/applications", protect, adminOnly, getAllApplications);
+// Single application details
+router.get("/applications/:id", protect, adminOnly, getApplicationById);
+// Document download proxy for admin (query param ?field=passport)
+router.get("/applications/:id/documents/download", protect, adminOnly, downloadApplicationDocument);
 
 // Route for updating application status (for Request Documents, etc.) - Accept both PUT and PATCH
 router.put("/applications/:id/status", protect, adminOnly, updateApplicationStatus);

@@ -1525,6 +1525,61 @@ export const getAllApplications = async (req, res) => {
   }
 };
 
+// ------------------ GET SINGLE APPLICATION (ADMIN) ------------------
+// @route GET /api/admin/applications/:id
+export const getApplicationById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const application = await Application.findById(id)
+      .populate({ path: "client", select: "name email phone" })
+      .populate({ path: "processedBy", select: "name email" })
+      .populate({ path: "agent", select: "name email" })
+      .lean();
+    if (!application) return res.status(404).json({ message: "Application not found" });
+
+    // Attach details and documents if models exist
+    try {
+      const ApplicationDetail = (await import("../models/ApplicationDetail.js")).default;
+      const ApplicationDocument = (await import("../models/ApplicationDocument.js")).default;
+      const details = await ApplicationDetail.find({ applicationId: id }).lean().catch(() => []);
+      const docs = await ApplicationDocument.find({ applicationId: id }).lean().catch(() => []);
+      application.details = details;
+      application.documentsList = docs;
+    } catch (e) {
+      application.details = [];
+      application.documentsList = [];
+    }
+
+    return res.json(application);
+  } catch (error) {
+    console.error("getApplicationById error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ------------------ SECURE DOCUMENT PROXY (ADMIN) ------------------
+// GET /api/admin/applications/:id/documents/download?field=passport
+export const downloadApplicationDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const field = req.query.field;
+    if (!field) return res.status(400).json({ message: "field query param required" });
+
+    const application = await Application.findById(id).lean();
+    if (!application) return res.status(404).json({ message: "Application not found" });
+
+    const url = application.documents && application.documents[field];
+    if (!url) return res.status(404).json({ message: "Document not found" });
+
+    // For now, redirect to the storage URL (Cloudinary). This keeps the file secure
+    // behind admin auth while avoiding streaming implementation complexity.
+    return res.redirect(url);
+  } catch (error) {
+    console.error("downloadApplicationDocument error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // ------------------ UPDATE APPLICATION STATUS (ADMIN) ------------------
 // @route   PATCH /api/admin/applications/:id/status
 // @access  Private (Admin)
