@@ -5,6 +5,12 @@ export const getTemplateByCountry = async (req, res) => {
     const { countrySlug } = req.params;
     const template = await FormTemplate.findOne({ countrySlug }).lean();
     if (!template) return res.status(404).json({ message: "Template not found" });
+    
+    // If formPdfUrl is not set, construct it from the frontend public folder
+    if (!template.formPdfUrl) {
+      template.formPdfUrl = `/documents/FORM%20FOR%20CLIENT.pdf`;
+    }
+    
     res.json(template);
   } catch (error) {
     console.error("getTemplateByCountry error:", error && error.message ? error.message : error);
