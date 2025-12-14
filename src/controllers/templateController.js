@@ -8,7 +8,7 @@ export const getTemplateByCountry = async (req, res) => {
     
     // If formPdfUrl is not set, construct it from the frontend public folder
     if (!template.formPdfUrl) {
-      template.formPdfUrl = `/documents/FORM%20FOR%20CLIENT.pdf`;
+      template.formPdfUrl = `/documents/FORM FOR CLIENT.pdf`;
     }
     
     res.json(template);
