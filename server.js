@@ -624,6 +624,7 @@ import seedRoutes from "./src/routes/seedRoutes.js";
 import clientRoutes from "./src/routes/clientRoutes.js";
 import countryRoutes from "./src/routes/countryRoutes.js";
 import templateRoutes from "./src/routes/templateRoutes.js";
+import requiredDocumentRoutes from "./src/routes/requiredDocumentRoutes.js";
 import { connectDB } from "./src/config/db.js";
 
 dotenv.config();
@@ -675,6 +676,7 @@ app.use(adminDebugData);
 app.use("/api/admin", adminRoutes);
 app.use("/api/admin", seedRoutes); // POST /api/admin/seed
 app.use("/api/client", clientRoutes);
+app.use("/api/client/required-document-applications", requiredDocumentRoutes);
 app.use("/api/employee", employeeRoutes);
 app.use("/api/agent", agentRoutes);
 app.use("/api/public/agents", controllRoutes);
