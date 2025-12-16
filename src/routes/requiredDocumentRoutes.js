@@ -1,19 +1,19 @@
-const express = require("express")
-const {
+import express from "express"
+import {
   submitApplication,
   getAllApplications,
   getApplicationById,
   getMyApplications,
   updateApplicationStatus,
   deleteApplication,
-} = require("../controllers/requiredDocumentController")
-const clientAuth = require("../middlewares/clientAuth")
+} from "../controllers/requiredDocumentController.js"
+import { protectClient } from "../middlewares/clientAuth.js"
 
 const router = express.Router()
 
 // Client routes
-router.post("/", clientAuth, submitApplication)
-router.get("/my-applications", clientAuth, getMyApplications)
+router.post("/", protectClient, submitApplication)
+router.get("/my-applications", protectClient, getMyApplications)
 
 // Admin routes
 router.get("/", getAllApplications)
@@ -21,4 +21,4 @@ router.get("/:id", getApplicationById)
 router.put("/:id/status", updateApplicationStatus)
 router.delete("/:id", deleteApplication)
 
-module.exports = router
+export default router

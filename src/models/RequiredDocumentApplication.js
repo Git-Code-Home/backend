@@ -1,4 +1,4 @@
-const mongoose = require("mongoose")
+import mongoose from "mongoose"
 
 const requiredDocumentApplicationSchema = new mongoose.Schema(
   {
@@ -76,4 +76,4 @@ const requiredDocumentApplicationSchema = new mongoose.Schema(
   { timestamps: true }
 )
 
-module.exports = mongoose.model("RequiredDocumentApplication", requiredDocumentApplicationSchema)
+export default mongoose.model("RequiredDocumentApplication", requiredDocumentApplicationSchema)

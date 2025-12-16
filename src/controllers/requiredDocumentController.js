@@ -1,17 +1,12 @@
-const RequiredDocumentApplication = require("../models/RequiredDocumentApplication")
-const Client = require("../models/Client")
+import RequiredDocumentApplication from "../models/RequiredDocumentApplication.js"
+import Client from "../models/Client.js"
 
 // Submit Required Document Application
-exports.submitApplication = async (req, res) => {
+export const submitApplication = async (req, res) => {
   try {
-    const clientId = req.user?.id || req.user?._id
+    const clientId = req.client?._id
     if (!clientId) {
       return res.status(401).json({ message: "Unauthorized" })
-    }
-
-    const client = await Client.findById(clientId)
-    if (!client) {
-      return res.status(404).json({ message: "Client not found" })
     }
 
     const applicationData = {
@@ -53,7 +48,7 @@ exports.submitApplication = async (req, res) => {
 }
 
 // Get all Required Document Applications (Admin)
-exports.getAllApplications = async (req, res) => {
+export const getAllApplications = async (req, res) => {
   try {
     const applications = await RequiredDocumentApplication.find()
       .populate("clientId", "name email mobileNumber")
@@ -67,7 +62,7 @@ exports.getAllApplications = async (req, res) => {
 }
 
 // Get single application by ID
-exports.getApplicationById = async (req, res) => {
+export const getApplicationById = async (req, res) => {
   try {
     const { id } = req.params
     const application = await RequiredDocumentApplication.findById(id).populate("clientId")
@@ -84,9 +79,9 @@ exports.getApplicationById = async (req, res) => {
 }
 
 // Get user's own applications
-exports.getMyApplications = async (req, res) => {
+export const getMyApplications = async (req, res) => {
   try {
-    const clientId = req.user?.id || req.user?._id
+    const clientId = req.client?._id
     const applications = await RequiredDocumentApplication.find({ clientId }).sort({ createdAt: -1 })
 
     res.status(200).json(applications)
@@ -97,7 +92,7 @@ exports.getMyApplications = async (req, res) => {
 }
 
 // Update application status (Admin)
-exports.updateApplicationStatus = async (req, res) => {
+export const updateApplicationStatus = async (req, res) => {
   try {
     const { id } = req.params
     const { status, adminNotes } = req.body
@@ -127,7 +122,7 @@ exports.updateApplicationStatus = async (req, res) => {
 }
 
 // Delete application
-exports.deleteApplication = async (req, res) => {
+export const deleteApplication = async (req, res) => {
   try {
     const { id } = req.params
     const application = await RequiredDocumentApplication.findByIdAndDelete(id)
