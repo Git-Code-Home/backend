@@ -77,6 +77,7 @@ const applicationSchema = new mongoose.Schema({
     default: null,
   },
   notes: { type: String },
+  description: { type: String },
 }, { timestamps: true });
 
 applicationSchema.pre("validate", function (next) {

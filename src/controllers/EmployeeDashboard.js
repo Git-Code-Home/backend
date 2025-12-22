@@ -1190,7 +1190,7 @@ export const registerClient = async (req, res) => {
 // @access  Private (Employee)
 export const createApplication = async (req, res) => {
   try {
-    const { clientId, visaType, visaDuration, country, formData } = req.body;
+    const { clientId, visaType, visaDuration, country, formData, description } = req.body;
 
     if (!clientId) return res.status(400).json({ message: "clientId is required" });
     if (!visaType) return res.status(400).json({ message: "visaType is required" });
@@ -1236,6 +1236,7 @@ export const createApplication = async (req, res) => {
       visaDuration,
       country: country || "dubai",
       formData: formData || {},
+      description: description || "",
       processedBy: req.user._id,
       status: "processing",
       paymentStatus: "unpaid",
