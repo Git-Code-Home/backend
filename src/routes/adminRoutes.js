@@ -199,6 +199,13 @@ import {
   getReportsSummary
 } from "../controllers/EmployeeDashboard.js";
 import { getClients, getOverview } from "../controllers/adminController.js";
+import {
+  getAllPayments,
+  getPaymentById,
+  getPaymentStats,
+  exportPayments,
+  refundPayment,
+} from "../controllers/paymentAdminController.js";
 
 const router = express.Router();
 
@@ -241,5 +248,12 @@ router.get("/public/data", protect, adminOnly, getAllClientsAndApplications);
 
 // Reports summary endpoint
 router.get("/reports/summary", protect, adminOnly, getReportsSummary);
+
+// ==================== PAYMENT ROUTES ====================
+router.get("/payments", protect, adminOnly, getAllPayments);
+router.get("/payments/stats", protect, adminOnly, getPaymentStats);
+router.get("/payments/:id", protect, adminOnly, getPaymentById);
+router.get("/payments/export", protect, adminOnly, exportPayments);
+router.post("/payments/:id/refund", protect, adminOnly, refundPayment);
 
 export default router;

@@ -17,8 +17,7 @@
 // import paymentRoutes from "./src/routes/paymentRoutes.js";
 // import adminDebugData from "./src/routes/adminDebugData.js";
 // import adminCommissionRoutes from "./src/routes/adminCommissionRoutes.js";
-// import agentCommissionRoutes from "./src/routes/agentCommissionRoutes.js";
-// import { connectDB } from "./src/config/db.js"; //  Import connection helper
+// import agentCommissionRoutes from "./src/routes/agentCommissionRoutes.js";import webhookRoutes from "./src/routes/webhookRoutes.js";// import { connectDB } from "./src/config/db.js"; //  Import connection helper
 
 // // ---------------- SETUP ----------------
 // const __filename = fileURLToPath(import.meta.url);
@@ -681,6 +680,7 @@ app.use("/api/employee", employeeRoutes);
 app.use("/api/agent", agentRoutes);
 app.use("/api/public/agents", controllRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/webhooks", webhookRoutes);
 app.use("/api/admin/commissions", adminCommissionRoutes);
 app.use("/api/agent/commissions", agentCommissionRoutes);
 // Public country and template endpoints (multi-country foundation)

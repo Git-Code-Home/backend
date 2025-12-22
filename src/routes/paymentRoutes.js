@@ -5,6 +5,17 @@ import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
 import streamifier from "streamifier";
 import { uploadReceipt, getReceipts, verifyReceipt } from "../controllers/paymentController.js";
+import {
+  createStripePaymentIntent,
+  confirmStripePayment,
+  getPaymentStatus,
+} from "../controllers/stripeController.js";
+import {
+  createPayPalOrder,
+  capturePayPalOrder,
+  getPayPalPaymentStatus,
+} from "../controllers/paypalController.js";
+import { protect, clientOnly } from "../middlewares/authMiddleware.js";
 
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -58,10 +69,58 @@ async function uploadReceiptCloudinary(req, res) {
 }
 
 const router = express.Router();
+
+// ==================== EXISTING RECEIPT ROUTES ====================
 router.post("/upload-receipt", upload.single("receipt"), uploadReceiptCloudinary);
 router.get("/", getReceipts);
 router.patch("/verify/:id", verifyReceipt);
+
+// ==================== STRIPE PAYMENT ROUTES ====================
+router.post(
+  "/stripe/create-payment-intent",
+  protect,
+  clientOnly,
+  createStripePaymentIntent
+);
+
+router.post(
+  "/stripe/confirm",
+  protect,
+  clientOnly,
+  confirmStripePayment
+);
+
+router.get(
+  "/status/:applicationId",
+  protect,
+  clientOnly,
+  getPaymentStatus
+);
+
+// ==================== PAYPAL PAYMENT ROUTES ====================
+router.post(
+  "/paypal/create-order",
+  protect,
+  clientOnly,
+  createPayPalOrder
+);
+
+router.post(
+  "/paypal/capture-order",
+  protect,
+  clientOnly,
+  capturePayPalOrder
+);
+
+router.get(
+  "/paypal/status/:applicationId",
+  protect,
+  clientOnly,
+  getPayPalPaymentStatus
+);
+
 export default router;
+
 
 
 
