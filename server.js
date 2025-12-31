@@ -624,6 +624,8 @@ import clientRoutes from "./src/routes/clientRoutes.js";
 import countryRoutes from "./src/routes/countryRoutes.js";
 import templateRoutes from "./src/routes/templateRoutes.js";
 import requiredDocumentRoutes from "./src/routes/requiredDocumentRoutes.js";
+import backupRoutes from "./src/routes/backupRoutes.js";
+import webhookRoutes from "./src/routes/webhookRoutes.js";
 import { connectDB } from "./src/config/db.js";
 
 dotenv.config();
@@ -683,6 +685,7 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/webhooks", webhookRoutes);
 app.use("/api/admin/commissions", adminCommissionRoutes);
 app.use("/api/agent/commissions", agentCommissionRoutes);
+app.use("/api/admin/backup", backupRoutes);
 // Public country and template endpoints (multi-country foundation)
 app.use("/api/countries", countryRoutes);
 app.use("/api/templates", templateRoutes);
