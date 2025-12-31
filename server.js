@@ -643,9 +643,18 @@ const allowedOrigins = new Set([
 
 const corsOptions = {
   origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, Postman, server-to-server)
     if (!origin) return callback(null, true);
+    
+    // Check if origin is in allowlist
     if (allowedOrigins.has(origin)) return callback(null, true);
-    return callback(new Error(`CORS blocked for origin: ${origin}`));
+    
+    // Also allow any vercel.app preview deployments
+    if (origin && origin.includes('.vercel.app')) return callback(null, true);
+    
+    // Log and allow (don't block) - for debugging
+    console.log(`⚠️ CORS request from unlisted origin: ${origin}`);
+    return callback(null, true); // Allow all for now, change to callback(new Error(...)) to block
   },
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "Accept", "X-Requested-With"],
@@ -654,9 +663,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-
-// ✅ FIXED LINE
-app.options(/.*/, cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 app.use(express.json());
 
