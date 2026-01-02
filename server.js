@@ -646,26 +646,59 @@ const allowedOrigins = new Set([
 const corsOptions = {
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps, Postman, server-to-server)
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      console.log("✅ CORS: Allowing request with no origin");
+      return callback(null, true);
+    }
     
     // Check if origin is in allowlist
-    if (allowedOrigins.has(origin)) return callback(null, true);
+    if (allowedOrigins.has(origin)) {
+      console.log(`✅ CORS: Allowing whitelisted origin: ${origin}`);
+      return callback(null, true);
+    }
     
     // Also allow any vercel.app preview deployments
-    if (origin && origin.includes('.vercel.app')) return callback(null, true);
+    if (origin && origin.includes('.vercel.app')) {
+      console.log(`✅ CORS: Allowing Vercel deployment: ${origin}`);
+      return callback(null, true);
+    }
     
     // Log and allow (don't block) - for debugging
-    console.log(`⚠️ CORS request from unlisted origin: ${origin}`);
+    console.log(`⚠️ CORS request from unlisted origin: ${origin} - allowing anyway`);
     return callback(null, true); // Allow all for now, change to callback(new Error(...)) to block
   },
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "Accept", "X-Requested-With"],
+  allowedHeaders: [
+    "Content-Type", 
+    "Authorization", 
+    "Accept", 
+    "X-Requested-With",
+    "Origin",
+    "Access-Control-Request-Method",
+    "Access-Control-Request-Headers"
+  ],
   credentials: true,
   optionsSuccessStatus: 204,
+  preflightContinue: false,
 };
 
+// Apply CORS middleware
 app.use(cors(corsOptions));
+
+// Handle preflight requests explicitly
 app.options("*", cors(corsOptions));
+
+// Add custom CORS headers as backup
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && (allowedOrigins.has(origin) || origin.includes('.vercel.app'))) {
+    res.header("Access-Control-Allow-Origin", origin);
+  }
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, X-Requested-With, Origin");
+  next();
+});
 
 app.use(express.json());
 
