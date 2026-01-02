@@ -209,7 +209,40 @@ import {
 
 const router = express.Router();
 
-router.post("/login", loginAdmin);
+// ================================================================================
+// CORS MIDDLEWARE FOR VERCEL: Handle preflight OPTIONS for all admin routes
+// ================================================================================
+router.options("*", (req, res) => {
+  const origin = req.get("origin") || "*";
+  
+  res.setHeader("Access-Control-Allow-Origin", origin);
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, X-Requested-With, Origin, Access-Control-Request-Method, Access-Control-Request-Headers");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Max-Age", "86400");
+  
+  console.log(`✅ [ADMIN ROUTES] OPTIONS preflight handled for origin: ${origin}`);
+  res.status(200).end();
+});
+
+// ================================================================================
+// LOGIN ENDPOINT: Explicit CORS handling for preflight + POST
+// ================================================================================
+router.post("/login", (req, res, next) => {
+  // Set CORS headers for login endpoint specifically
+  const origin = req.get("origin") || "*";
+  
+  res.setHeader("Access-Control-Allow-Origin", origin);
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, X-Requested-With, Origin");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Max-Age", "86400");
+  
+  console.log(`✅ [LOGIN] POST request from origin: ${origin}`);
+  
+  // Pass to the actual login handler
+  loginAdmin(req, res, next);
+});
 router.get("/profile", protect, adminOnly, getAdminProfile);
 router.post("/add-employee", protect, adminOnly, addEmployee);
 router.get("/employees", protect, adminOnly, getEmployees);

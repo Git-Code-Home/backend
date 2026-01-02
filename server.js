@@ -696,22 +696,35 @@ app.use(cors(corsOptions));
 // This must come AFTER app.use(cors()) but BEFORE routes
 app.options("*", cors(corsOptions));
 
-// ✅ Manual CORS header fallback (in case the cors middleware doesn't catch preflight)
+// ✅ VERCEL-SPECIFIC: Aggressive CORS header middleware for serverless functions
+// This ensures headers are set even if Express CORS middleware fails
 app.use((req, res, next) => {
-  const origin = req.get("origin");
+  const origin = req.get("origin") || "";
   
-  // Set CORS headers manually for all responses
-  if (origin && (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app'))) {
-    res.set("Access-Control-Allow-Origin", origin);
+  // Set CORS headers for allowed origins
+  if (
+    allowedOrigins.includes(origin) ||
+    origin.endsWith('.vercel.app') ||
+    origin === "https://sherrytravels-webapp.vercel.app"
+  ) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    console.log(`✅ [VERCEL CORS] Set origin header for: ${origin}`);
+  } else if (origin) {
+    // Log unknown origins for debugging
+    console.warn(`⚠️ [CORS] Unknown origin: ${origin}`);
   }
   
+  // Always set these headers for Vercel compatibility
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, X-Requested-With, Origin, Access-Control-Request-Method, Access-Control-Request-Headers");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Max-Age", "86400");
+  res.setHeader("Access-Control-Expose-Headers", "Content-Length, X-JSON-Response");
+  
+  // Handle preflight OPTIONS request immediately
   if (req.method === "OPTIONS") {
-    // Respond immediately to preflight without error
-    res.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD");
-    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, X-Requested-With, Origin, Access-Control-Request-Method, Access-Control-Request-Headers");
-    res.set("Access-Control-Allow-Credentials", "true");
-    res.set("Access-Control-Max-Age", "86400");
-    return res.status(204).end(); // Return 204 No Content for preflight
+    console.log(`✅ [CORS] Handling OPTIONS preflight for: ${req.path}`);
+    return res.status(200).end(); // Return 200 for OPTIONS (Vercel sometimes rejects 204)
   }
   
   next();
