@@ -634,73 +634,92 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
 
-// ---------------- CORS ----------------
-const allowedOrigins = new Set([
+// ================================================================================
+// CRITICAL: CORS MIDDLEWARE MUST BE FIRST (Before routes and other middleware)
+// ================================================================================
+
+// Define allowed origins for CORS
+const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:5000",
   "http://localhost:5173",
   "http://localhost:8080",
   "https://sherrytravels-webapp.vercel.app",
-]);
+  "https://sherry-backend.vercel.app", // Backend domain for same-origin requests
+];
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, Postman, server-to-server)
+    // Allow requests with no origin (mobile apps, Postman, curl, server-to-server)
     if (!origin) {
-      console.log("✅ CORS: Allowing request with no origin");
+      console.log("✅ [CORS] Allowing request with no origin header");
       return callback(null, true);
     }
-    
-    // Check if origin is in allowlist
-    if (allowedOrigins.has(origin)) {
-      console.log(`✅ CORS: Allowing whitelisted origin: ${origin}`);
+
+    // Check explicit allowlist
+    if (allowedOrigins.includes(origin)) {
+      console.log(`✅ [CORS] Allowing whitelisted origin: ${origin}`);
       return callback(null, true);
     }
-    
-    // Also allow any vercel.app preview deployments
-    if (origin && origin.includes('.vercel.app')) {
-      console.log(`✅ CORS: Allowing Vercel deployment: ${origin}`);
+
+    // Allow all Vercel preview/deployment domains (*.vercel.app)
+    if (origin.endsWith('.vercel.app')) {
+      console.log(`✅ [CORS] Allowing Vercel deployment: ${origin}`);
       return callback(null, true);
     }
-    
-    // Log and allow (don't block) - for debugging
-    console.log(`⚠️ CORS request from unlisted origin: ${origin} - allowing anyway`);
-    return callback(null, true); // Allow all for now, change to callback(new Error(...)) to block
+
+    // For production debugging: log but allow non-whitelisted origins
+    // Change to: callback(new Error(`CORS: Origin ${origin} not allowed`)); to block
+    console.warn(`⚠️  [CORS] Request from non-whitelisted origin: ${origin} (allowing for debugging)`);
+    return callback(null, true);
   },
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
   allowedHeaders: [
-    "Content-Type", 
-    "Authorization", 
-    "Accept", 
+    "Content-Type",
+    "Authorization",
+    "Accept",
     "X-Requested-With",
     "Origin",
     "Access-Control-Request-Method",
-    "Access-Control-Request-Headers"
+    "Access-Control-Request-Headers",
   ],
+  exposedHeaders: ["Content-Length", "X-JSON-Response"],
   credentials: true,
-  optionsSuccessStatus: 204,
-  preflightContinue: false,
+  optionsSuccessStatus: 204, // Some legacy browsers choke on 204
+  maxAge: 86400, // 24 hours
 };
 
-// Apply CORS middleware
+// ✅ Apply CORS to all routes BEFORE defining routes
 app.use(cors(corsOptions));
 
-// Handle preflight requests explicitly
+// ✅ Explicitly handle preflight OPTIONS requests for all paths
+// This must come AFTER app.use(cors()) but BEFORE routes
 app.options("*", cors(corsOptions));
 
-// Add custom CORS headers as backup
+// ✅ Manual CORS header fallback (in case the cors middleware doesn't catch preflight)
 app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (origin && (allowedOrigins.has(origin) || origin.includes('.vercel.app'))) {
-    res.header("Access-Control-Allow-Origin", origin);
+  const origin = req.get("origin");
+  
+  // Set CORS headers manually for all responses
+  if (origin && (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app'))) {
+    res.set("Access-Control-Allow-Origin", origin);
   }
-  res.header("Access-Control-Allow-Credentials", "true");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, X-Requested-With, Origin");
+  
+  if (req.method === "OPTIONS") {
+    // Respond immediately to preflight without error
+    res.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, X-Requested-With, Origin, Access-Control-Request-Method, Access-Control-Request-Headers");
+    res.set("Access-Control-Allow-Credentials", "true");
+    res.set("Access-Control-Max-Age", "86400");
+    return res.status(204).end(); // Return 204 No Content for preflight
+  }
+  
   next();
 });
 
+// ✅ Body parser middleware
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // ---------------- DATABASE ----------------
 let isConnected = false;
